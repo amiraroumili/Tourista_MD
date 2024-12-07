@@ -1,0 +1,103 @@
+name: tourista
+description: "A new Flutter project."
+# The following line prevents the package from being accidentally published to
+# pub.dev using `flutter pub publish`. This is preferred for private packages.
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.5.3
+
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_rating_bar: ^4.0.0
+  image_picker: ^0.8.7+4
+  webview_flutter: ^4.0.0
+<<<<<<< HEAD
+=======
+  cupertino_icons: ^1.0.8
+  url_launcher: ^6.1.7
+
+
+>>>>>>> 35e152e28003971e528d21ed6e735a51febb0204
+  cupertino_icons: ^1.0.8
+  url_launcher: ^6.1.7
+
+
+
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  
+  flutter_lints: ^4.0.0
+
+
+flutter:
+
+
+  uses-material-design: true
+
+  assets:
+    - assets/Images/Logo/logo_red_begin.png
+    - assets/Images/Logo/logo_red_up.png
+    - assets/Images/Logo/logo_red_down.png
+    - assets/Images/Logo/logo_beige_begin.png
+    - assets/Images/Logo/logo_beige_up.png
+    - assets/Images/Logo/logo_beige_down.png
+    - assets/Images/Logo/logo_white_begin.png
+    - assets/Images/Logo/logo_white_up.png
+    - assets/Images/Icons/tree_vector.png
+    - assets/Images/Icons/historic.png
+    - assets/Images/Icons/historic_red.png
+    - assets/Images/Icons/historic_white.png
+    - assets/Images/Icons/sea.png
+    - assets/Images/Icons/sea_red.png
+    - assets/Images/Icons/sea_white.png
+    - assets/Images/Icons/forest.png
+    - assets/Images/Icons/forest_red.png
+    - assets/Images/Icons/forest_white.png
+    - assets/Images/Icons/nature.png
+    - assets/Images/Icons/nature_red.png
+    - assets/Images/Icons/nature_white.png
+    - assets/Images/Icons/desert.png
+    - assets/Images/Icons/desert_red.png
+    - assets/Images/Icons/desert_white.png
+    - assets/Images/Icons/all_red.png 
+    - assets/Images/Icons/all_white.png
+    - assets/Images/Places/Oued_bared.jpg
+    - assets/Images/Places/Timguad.jpg
+    - assets/Images/Places/Tassili.jpg
+    - assets/Images/Places/Oran.jpg
+    - assets/Images/Places/Bejaia.jpg
+    - assets/Images/Places/timimoun.jpg
+    - assets/Images/Events/hotel_promo.png
+    - assets/Images/Events/art_exh.jpg
+    - assets/Images/Events/food_fair.jpg
+    - assets/Images/Events/book_fair.jpg
+    - assets/Images/Events/film_fest.jpg
+    - assets/Images/Events/music_fest.jpg
+    - assets/Images/Events/tech_conf.jpg
+    - assets/Images/Profile/amira.png
+    - assets/Images/Profile/Profile.png
+    - assets/Images/Guides/nehad-benz.jpg
+    - assets/Images/Guides/adel-moncef.jpg
+    - assets/Images/Guides/mama-taibi.jpg
+    - assets/Images/Guides/rasha-hamidi.jpg
+    - assets/Images/Guides/mustapha-tahri.jpg
+    - assets/Images/Guides/moussa-ayoub.jpg
+    - assets/Images/Guides/redouane-fellah.jpg
+
+
+
+
+  fonts:
+    - family: Baloo Bhai 2
+      fonts:
+        - asset: assets/fonts/BalooBhai2_Regular.ttf
+
+
