@@ -19,6 +19,4 @@ Tourista is a mobile application designed to serve as a comprehensive tourism gu
 - Imane HADDAD : imane.haddad@ensia.edu.dz
 - Rahil GHANEM : rahil.ghanem@ensia.edu.dz
 - Firdaws BASSAID : firdaws.bassaid@ensia.edu.dz
-=======
-# Tourista_MD
->>>>>>> 243674915d13fb55efa9e99b598faee07b651ae6
+
