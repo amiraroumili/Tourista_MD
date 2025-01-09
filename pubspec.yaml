@@ -16,15 +16,10 @@ dependencies:
   flutter_rating_bar: ^4.0.0
   image_picker: ^0.8.7+4
   webview_flutter: ^4.0.0
-<<<<<<< HEAD
-=======
   cupertino_icons: ^1.0.8
   url_launcher: ^6.1.7
 
 
->>>>>>> 35e152e28003971e528d21ed6e735a51febb0204
-  cupertino_icons: ^1.0.8
-  url_launcher: ^6.1.7
 
 
 

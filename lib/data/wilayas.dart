@@ -1,6 +1,7 @@
 // data/wilayas.dart
 
 const List<String> wilayas = [
+  "Wilaya",
   "Adrar",
   "Chlef",
   "Laghouat",

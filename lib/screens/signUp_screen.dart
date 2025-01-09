@@ -1,11 +1,12 @@
+// filepath: /c:/Users/AMIRA/Desktop/Tourista/NEEEW/lib/screens/signUp_screen.dart
 import 'package:flutter/material.dart';
-import '../auth/auth_dummy.dart';
+import '../database/database.dart';
 import 'dart:async'; // For Timer
 
 class SignUpScreen extends StatefulWidget {
-  final DummyAuthService authService;
+  final DatabaseService databaseService;
 
-  const SignUpScreen({super.key, required this.authService});
+  const SignUpScreen({super.key, required this.databaseService});
 
   @override
   _SignUpScreenState createState() => _SignUpScreenState();
@@ -45,19 +46,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
       body: SafeArea(
         child: Stack(
           children: [
-        
             Positioned(
               bottom: -30,
               left: -20,
               child: Image.asset(
                 'assets/Images/Icons/tree_vector.png',
-                height: deviceHeight * 0.5, 
+                height: deviceHeight * 0.5,
               ),
             ),
-            // Scrollable main content
             SingleChildScrollView(
               child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: deviceWidth * 0.06), 
+                padding: EdgeInsets.symmetric(horizontal: deviceWidth * 0.06),
                 child: Form(
                   key: _formKey,
                   child: Column(
@@ -91,15 +90,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 
-  Widget _logo() {
-    return Center(
-      child: Image.asset(
-        'assets/Images/Logo/logo_red_up.png', 
-        height: 100,
-      ),
-    );
-  }
-
   Widget _firstNameField() {
     return TextFormField(
       controller: _firstNameController,
@@ -107,7 +97,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         labelText: 'First name',
         labelStyle: TextStyle(color: const Color(0xFF6D071A).withOpacity(0.7)),
         prefixIcon: const Icon(Icons.person, color: Color(0xFF6D071A)),
-        suffixIcon: _firstNameController.text.isNotEmpty && _firstNameController.text.length >= 2 ? const Icon(Icons.check_circle, color: Colors.green): null, 
+        suffixIcon: _firstNameController.text.isNotEmpty && _firstNameController.text.length >= 2 ? const Icon(Icons.check_circle, color: Colors.green): null,
         filled: true,
         fillColor: Colors.white,
         border: OutlineInputBorder(
@@ -120,10 +110,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
         ),
       ),
       onChanged: (value) {
-      setState(() {}); 
-    },
+        setState(() {});
+      },
       validator: (value) {
-        if (value == null || value.isEmpty) {          
+        if (value == null || value.isEmpty) {
           return 'First name is required';
         }
         return null;
@@ -138,8 +128,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         labelText: 'Family name',
         labelStyle: TextStyle(color: const Color(0xFF6D071A).withOpacity(0.7)),
         prefixIcon: const Icon(Icons.person, color: Color(0xFF6D071A)),
-        suffixIcon: _familyNameController.text.isNotEmpty && _familyNameController.text.length >= 2 ? const Icon(Icons.check_circle, color: Colors.green): null, 
-
+        suffixIcon: _familyNameController.text.isNotEmpty && _familyNameController.text.length >= 2 ? const Icon(Icons.check_circle, color: Colors.green): null,
         filled: true,
         fillColor: Colors.white,
         border: OutlineInputBorder(
@@ -152,8 +141,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
         ),
       ),
       onChanged: (value) {
-      setState(() {}); 
-    },
+        setState(() {});
+      },
       validator: (value) {
         if (value == null || value.isEmpty) {
           return 'Family name is required';
@@ -173,7 +162,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         suffixIcon: _emailController.text.isNotEmpty &&
               RegExp(r'\S+@\S+\.\S+').hasMatch(_emailController.text)
           ? const Icon(Icons.check_circle, color: Colors.green)
-          : null, 
+          : null,
         filled: true,
         fillColor: Colors.white,
         border: OutlineInputBorder(
@@ -186,8 +175,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
         ),
       ),
       onChanged: (value) {
-      setState(() {}); 
-    },
+        setState(() {});
+      },
       validator: (value) {
         if (value == null || value.isEmpty) {
           return 'Email is required';
@@ -221,8 +210,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
         ),
       ),
       onChanged: (value) {
-      setState(() {}); 
-    },
+        setState(() {});
+      },
       validator: (value) {
         if (value == null || value.isEmpty) {
           return 'Wilaya is required';
@@ -255,8 +244,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
         ),
       ),
       onChanged: (value) {
-      setState(() {}); 
-    },
+        setState(() {});
+      },
       validator: (value) {
         if (value == null || value.isEmpty) {
           return 'Password is required';
@@ -292,8 +281,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
         ),
       ),
       onChanged: (value) {
-      setState(() {}); 
-    },
+        setState(() {});
+      },
       validator: (value) {
         if (value == null || value.isEmpty) {
           return 'Confirm password is required';
@@ -306,106 +295,115 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   Widget _signUpButton() {
-  return ElevatedButton(
-    onPressed: () async {
-      if (_formKey.currentState?.validate() ?? false) {
-        try {
-          await widget.authService.signUp(
-            _emailController.text,
-            _passwordController.text,
-          );
+    return ElevatedButton(
+onPressed: () async {
+  if (_formKey.currentState?.validate() ?? false) {
+    try {
+      // Add debug print before insertion
+      print('Attempting to insert user: ${_emailController.text}');
+      
+      await widget.databaseService.insertUser({
+        'email': _emailController.text,
+        'password': _passwordController.text,
+        'firstName': _firstNameController.text,
+        'familyName': _familyNameController.text,
+        'wilaya': _wilayaController.text,
+      });
+      
+      // Add debug print after insertion
+      print('User inserted successfully');
+      
+      // Verify the user was saved
+      final savedUser = await widget.databaseService.getUser(_emailController.text);
+      print('Saved user data: $savedUser');
 
-          // Show the success dialog
-          showDialog(
-            context: context,
-            builder: (context) {
-              return AlertDialog(
-                
-                title: const Center(
-                  child: Text(
-                    'Success',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-                alignment: Alignment.center,
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text(
-                      'Account created successfully!',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 16.0),
+            // Show the success dialog
+            showDialog(
+              context: context,
+              builder: (context) {
+                return AlertDialog(
+                  title: const Center(
+                    child: Text(
+                      'Success',
+                      style: TextStyle(fontWeight: FontWeight.bold),
                     ),
-                    const SizedBox(height: 16.0),
-                    Icon(
-                      Icons.check,
-                      color: const Color(0xFF6D071A).withOpacity(0.7),
-                      size: 48.0,
+                  ),
+                  alignment: Alignment.center,
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        'Account created successfully!',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 16.0),
+                      ),
+                      const SizedBox(height: 16.0),
+                      Icon(
+                        Icons.check,
+                        color: const Color(0xFF6D071A).withOpacity(0.7),
+                        size: 48.0,
+                      ),
+                    ],
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(32.0),
+                    side: const BorderSide(color: Color(0xFF6D071A), width: 2),
+                  ),
+                );
+              },
+            );
+
+            // Navigate to Sign In screen after 2 seconds
+            Timer(const Duration(seconds: 2), () {
+              Navigator.pop(context);
+              Navigator.pushReplacementNamed(context, '/signIn');
+            });
+          } catch (e) {
+            showDialog(
+              context: context,
+              builder: (context) {
+                return AlertDialog(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(40),
+                    side: const BorderSide(
+                      color: Color(0xFF6D071A),
+                      width: 2,
+                    ),
+                  ),
+                  title: const Text('Error'),
+                  content: Text(e.toString()),
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                      child: const Text('OK', style: TextStyle(color: Color(0xFF6D071A))),
                     ),
                   ],
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(32.0),
-                  side: const BorderSide(color: Color(0xFF6D071A), width: 2), 
-                ),
-              );
-            },
-          );
-
-          // Navigate to Sign In screen after 2 seconds
-          Timer(const Duration(seconds: 2), () {
-            Navigator.pop(context); 
-            Navigator.pushReplacementNamed(context, '/signIn');
-          });
-        } catch (e) {
-         
-          showDialog(
-            context: context,
-            builder: (context) {
-
-              return AlertDialog(
-                shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(40),
-                        side: BorderSide(
-                          color: Color(0xFF6D071A),
-                          width: 2,
-                        ),
-                      ),
-                  
-                title: const Text('Error'),
-                content: Text(e.toString()),
-                actions: [
-                  TextButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                    child: const Text('OK' , style: TextStyle(color: Color(0xFF6D071A))),
-                  ),
-                ],
-              );
-            },
-          );
+                );
+              },
+            );
+          }
         }
-      }
-    },
-    style: ElevatedButton.styleFrom(
-      backgroundColor: const Color(0xFF6D071A),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(32.0),
-      ),
-    ),
-    child: const Padding(
-      padding: EdgeInsets.all(16.0),
-      child: Text(
-        'Sign Up',
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: 18.0,
+      },
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFF6D071A),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(32.0),
         ),
       ),
-    ),
-  );
-}
+      child: const Padding(
+        padding: EdgeInsets.all(16.0),
+        child: Text(
+          'Sign Up',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 18.0,
+          ),
+        ),
+      ),
+    );
+  }
 
   Widget _signInText(BuildContext context) {
     return Center(
@@ -415,7 +413,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
           const Text("Already have an account? "),
           TextButton(
             onPressed: () {
-              
               Navigator.pushNamed(context, '/signIn');
             },
             child: const Text(

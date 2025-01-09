@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:tourista/screens/Places_information_page.dart';
-import 'auth/auth_dummy.dart';
 import 'screens/Edit_profile_page.dart';
 import 'screens/Eventinformation.dart';
 import 'screens/GuidesInfoPage.dart';
@@ -17,21 +16,15 @@ import 'screens/favorite_screen.dart';
 import 'screens/events&opp_screen.dart';
 import 'screens/forgetPass_screen.dart';
 import 'screens/notifications_screen.dart';
-<<<<<<< HEAD
-import 'data/Placesdata.dart';
-import 'data/Eventdata.dart';
 import 'screens/suggestions_feedback_screen.dart';
+import 'database/database.dart';
 
-=======
->>>>>>> 35e152e28003971e528d21ed6e735a51febb0204
-
-
-void main() {
+void main() async {
   runApp(TouristaApp());
 }
 
 class TouristaApp extends StatelessWidget {
-  final DummyAuthService authService = DummyAuthService();
+  final DatabaseService databaseService = DatabaseService();
 
   TouristaApp({super.key});
 
@@ -41,29 +34,65 @@ class TouristaApp extends StatelessWidget {
       title: 'Tourista',
       initialRoute: '/first',
       debugShowCheckedModeBanner: false,
-      routes: {
-        '/first': (context) => FirstScreen(), 
-        '/signIn': (context) => SignInScreen(authService: authService), 
-        '/signUp': (context) => SignUpScreen(authService: authService), 
-        '/home': (context) => HomeScreen(), 
-        '/favorite': (context) => FavoritePlacesScreen(), 
-        '/ev&opp': (context) => EventsAndOpportunitiesScreen(), 
-        '/forgetPass': (context) => ForgetPassScreen(),
-        '/notifications': (context) => NotificationsPage(),
-<<<<<<< HEAD
-        '/edirprofile': (context) => EditProfilePage(),
-        '/profile': (context) => ProfilePage(),
-        '/guides': (context) => GuidesInfoPage(),
-        '/wilayas': (context) => WilayaListPage(),
-        '/contact': (context) => ContactUsPage(),
-        '/feedback': (context) => SuggestionsAndFeedbackPage(),
-        '/placeinfo': (context) => InformationPagess( placeInfo : timgad ),
-        '/Eventinfo': (context) => Eventinformation( eventInfo : techConference ),
-        '/verification': (context) => VerificationScreen(),
-        '/changePass': (context) =>ChangePasswordPage(),
-        
-=======
->>>>>>> 35e152e28003971e528d21ed6e735a51febb0204
+      onGenerateRoute: (settings) {
+        if (settings.name == '/guides') {
+          final args = settings.arguments as Map<String, dynamic>;
+          return MaterialPageRoute(
+            builder: (context) => GuidesInfoPage(
+              guides: args['guides'] as List<Map<String, dynamic>>,
+              wilayaName: args['wilayaName'] as String,
+            ),
+          );
+        }
+        return MaterialPageRoute(
+          builder: (context) {
+            switch (settings.name) {
+              case '/first':
+                return const FirstScreen();
+              case '/signIn':
+                return SignInScreen(databaseService: databaseService);
+              case '/signUp':
+                return SignUpScreen(databaseService: databaseService);
+              case '/home':
+                final args = settings.arguments as Map<String, dynamic>?;
+                return HomeScreen(
+                  userEmail: args?['userEmail'] ?? '',
+                );
+              case '/favorite':
+                return const FavoritePlacesScreen();
+              case '/ev&opp':
+                return const EventsAndOpportunitiesScreen();
+              case '/forgetPass':
+                return ForgetPassScreen();
+              case '/notifications':
+                return const NotificationsPage();
+              case '/profile':
+                final args = settings.arguments as Map<String, dynamic>?;
+                if (args == null || !args.containsKey('userEmail')) {
+                  return const Center(child: Text('Error: Missing user email'));
+                }
+                return ProfilePage(
+                  userEmail: args['userEmail'] as String,
+                  databaseService: databaseService,
+                );
+              case '/wilayas':
+                return const WilayaListPage();
+              case '/contact':
+                return const ContactUsPage();
+              case '/feedback':
+                return const SuggestionsAndFeedbackPage();
+              case '/placeinfo':
+                final args = settings.arguments as Map<String, dynamic>;
+                return InformationPagess(placeInfo: args['placeInfo']);
+              case '/verification':
+                return VerificationScreen();
+              case '/changePass':
+                return const ChangePasswordPage();
+              default:
+                return const FirstScreen();
+            }
+          },
+        );
       },
     );
   }

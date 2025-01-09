@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import '../auth/auth_dummy.dart';
+import '../database/database.dart';
 
 class SignInScreen extends StatefulWidget {
-  final DummyAuthService authService;
+  final DatabaseService databaseService;
 
-  const SignInScreen({super.key, required this.authService});
+  const SignInScreen({super.key, required this.databaseService});
 
   @override
   _SignInScreenState createState() => _SignInScreenState();
@@ -147,30 +147,45 @@ class _SignInScreenState extends State<SignInScreen> {
 
   Widget _signInButton(BuildContext context) {
     return ElevatedButton(
-      onPressed: () async {
-        setState(() {
-          _isLoading = true;
-          _errorMessage = null;
-        });
-        try {
-          await widget.authService.signIn(
-            _emailController.text,
-            _passwordController.text,
-          );
-          Navigator.pushReplacementNamed(
-            context,
-            '/home',
-          );
-        } catch (e) {
-          setState(() {
-            _errorMessage = e.toString();
-          });
-        } finally {
-          setState(() {
-            _isLoading = false;
-          });
-        }
+      // In SignInScreen, modify the _signInButton onPressed:
+onPressed: () async {
+  setState(() {
+    _isLoading = true;
+    _errorMessage = null;
+  });
+  
+  try {
+    print('Attempting to sign in with email: ${_emailController.text}');
+    
+    final user = await widget.databaseService.getUser(_emailController.text);
+    print('Found user: $user');
+    
+    if (user == null) {
+      throw Exception('No account found with this email');
+    }
+    
+    if (user['password'] != _passwordController.text) {
+      throw Exception('Incorrect password');
+    }
+    
+    Navigator.pushReplacementNamed(
+      context,
+      '/home',
+      arguments: {
+        'userEmail': _emailController.text,
       },
+    );
+  } catch (e) {
+    setState(() {
+      _errorMessage = e.toString();
+    });
+    print('Sign in error: $e');
+  } finally {
+    setState(() {
+      _isLoading = false;
+    });
+  }
+},
       style: ElevatedButton.styleFrom(
         backgroundColor: const Color(0xFF6D071A),
         foregroundColor: Colors.white,
@@ -197,7 +212,6 @@ class _SignInScreenState extends State<SignInScreen> {
           const Text("Don't have an account?"),
           TextButton(
             onPressed: () {
-          
               Navigator.pushNamed(context, '/signUp');
             },
             child: const Text(

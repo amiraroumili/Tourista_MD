@@ -3,14 +3,18 @@ import '../widgets/bottom_nav_bar.dart';
 import '../widgets/search_bar.dart' as custom;
 import '../widgets/drawer.dart';
 import 'package:tourista/screens/Eventinformation.dart';
-import 'package:tourista/data/Eventdata.dart'; 
 import 'package:tourista/screens/Places_information_page.dart';
-import 'package:tourista/data/Placesdata.dart';
-
+import '/database/database.dart';
+import 'event_info_new.dart';
 import 'Profile_page.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final String userEmail;
+
+  const HomeScreen({
+    super.key,
+    required this.userEmail,
+  });
 
   @override
   _HomeScreenState createState() => _HomeScreenState();
@@ -18,23 +22,44 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  final DatabaseService _databaseService = DatabaseService();
+  String get currentUserEmail => widget.userEmail;
   String selectedCategory = 'All';
   String selectedWilaya = 'Wilaya';
-  List<PlaceInfo> touristicPlaces = [
-    ouedElBared,
-    santaCruz,
-    tassili,
-    timgad,
-    timimoun,
-  ];
+  List<PlaceInfo> touristicPlaces = [];
   List<PlaceInfo> filteredTouristicPlaces = [];
+  List<EventInfo> events = [];
 
-  @override
   void initState() {
     super.initState();
     selectedCategory = 'All';
-    filteredTouristicPlaces = touristicPlaces;
+    _loadPlaces();
+    _loadEvents(); 
   }
+
+Future<void> _loadEvents() async {
+  try {
+    final eventsData = await _databaseService.getAllEvents();
+    setState(() {
+      events = eventsData.map((eventMap) => EventInfo.fromMap(eventMap)).toList();
+      events.sort((a, b) => DateTime.parse(b.date).compareTo(DateTime.parse(a.date))); // Sort events by date in descending order
+      events = events.take(3).toList(); // Take only the latest three events
+    });
+    print('Loaded ${events.length} events'); // Debug print
+  } catch (e) {
+    print('Error loading events: $e');
+  }
+}
+
+  Future<void> _loadPlaces() async {
+    final places = await _databaseService.getAllPlaces();
+    setState(() {
+      touristicPlaces = places.map((place) => PlaceInfo.fromMap(place)).toList();
+      _filterPlaces();
+    });
+  }
+
+
 
   void _onCategorySelected(String category) {
     setState(() {
@@ -83,21 +108,24 @@ class _HomeScreenState extends State<HomeScreen> {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => ProfilePage()),
+                  MaterialPageRoute(builder: (context) => ProfilePage(userEmail: currentUserEmail, databaseService: DatabaseService())),
                 );
               },
             ),
           ],
         ),
       ),
-      drawer: const CustomDrawer(),
+      drawer: CustomDrawer(
+        userEmail: currentUserEmail,
+        databaseService: DatabaseService(),
+
+      ),
       body: Container(
         color: Colors.white,
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-        
               custom.SearchBar(onWilayaSelected: _onWilayaSelected),
               // Categories Section
               const Padding(
@@ -118,42 +146,46 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
-              // Events & Opportunities Section
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 8.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('Events & Opportunities', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF6D071A))),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.pushNamed(context, '/ev&opp');
-                      },
-                      child: Text('See All', style: TextStyle(color: const Color(0xFF6D071A).withOpacity(0.5))),
-                    ),
-                  ],
+                // Events & Opportunities Section
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 8.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Events & Opportunities',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF6D071A)
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pushNamed(context, '/ev&opp');
+                        },
+                        child: Text(
+                          'See All',
+                          style: TextStyle(
+                            color: const Color(0xFF6D071A).withOpacity(0.5)
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              SizedBox(
-                height: 130,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  children: [
-                    _eventCard(context, musicFestival),
-                    _eventCard(context, artExhibition),
-                    _eventCard(context, foodFair),
-               
-                  ],
+                SizedBox(
+                  height: 140,
+                  child: events.isEmpty
+                    ? const Center(
+                        child: Text('No events available'),
+                      )
+                    : ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: events.length,
+                        itemBuilder: (context, index) => _eventCard(context, events[index]),
+                      ),
                 ),
-              ),
-         
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                child: Container(
-                  height: 1,
-                  color: const Color(0xFFD79384).withOpacity(0.4),
-                ),
-              ),
               // Touristic Places Section
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -167,7 +199,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         margin: const EdgeInsets.only(bottom: 100),
                         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 25.0),
                         alignment: Alignment.center,
-                        child: Text('No places.', style: TextStyle(fontSize: 16, color: Colors.black.withOpacity(0.8))),
+                        child: Text('No places found.', style: TextStyle(fontSize: 16, color: Colors.black.withOpacity(0.8))),
                       )
                     : GridView.count(
                         shrinkWrap: true,
@@ -177,6 +209,13 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: filteredTouristicPlaces.map((placeInfo) {
                           return TouristicPlaceCard(
                             placeInfo: placeInfo,
+                            onFavoriteToggled: () async {
+                              await _databaseService.updatePlaceFavoriteStatus(
+                                placeInfo.id!,
+                                !placeInfo.isFavorite,
+                              );
+                              _loadPlaces(); // Reload places after updating favorite status
+                            },
                           );
                         }).toList(),
                       ),
@@ -206,11 +245,11 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(width: 8),
               Text(
                 label,
-                style: TextStyle(fontSize: 16, color: isSelected ? Colors.white : const Color(0xFF6D071A)), 
+                style: TextStyle(fontSize: 16, color: isSelected ? Colors.white : const Color(0xFF6D071A)),
               ),
             ],
           ),
-          backgroundColor: isSelected ? const Color(0xFF6D071A) : Colors.white, 
+          backgroundColor: isSelected ? const Color(0xFF6D071A) : Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20.0),
             side: const BorderSide(color: Color(0xFF6D071A)),
@@ -220,93 +259,86 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _eventCard(BuildContext context, EventInfo eventInfo) {
-    return Card(
+Widget _eventCard(BuildContext context, EventInfo eventInfo) {
+  return Container(
+    width: 300, // Fixed width for the card
+    margin: const EdgeInsets.all(6),
+    child: Card(
       color: const Color.fromARGB(255, 251, 248, 245),
-      margin: const EdgeInsets.all(6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start, 
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Container(
-              decoration: BoxDecoration(
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    spreadRadius: 0.2,
-                    blurRadius: 10,
-                    offset: const Offset(0, 2), 
-                  ),
-                ],
-                borderRadius: BorderRadius.circular(20),
-              ),
+      child: IntrinsicHeight(
+        child: Row(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(8.0),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(40),
+                borderRadius: BorderRadius.circular(10),
                 child: Image.asset(
                   eventInfo.imageUrl,
-                  height: 90,
-                  width: 140,
+                  width: 100,
+                  height: 100,
                   fit: BoxFit.cover,
                 ),
               ),
             ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
+            Expanded(
+              child: Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
+                    Text(
+                      eventInfo.title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
+                        const Icon(Icons.location_on, 
+                          color: Color(0xFFD79384),
+                          size: 14,
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            eventInfo.wilaya,
+                            style: const TextStyle(
+                              color: Color(0xFFD79384),
+                              fontSize: 12,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(Icons.date_range,
+                          color: Color(0xFFD79384),
+                          size: 14,
+                        ),
+                        const SizedBox(width: 4),
                         Text(
-                          eventInfo.name,
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          eventInfo.date,
+                          style: const TextStyle(
+                            color: Color(0xFFD79384),
+                            fontSize: 12,
+                          ),
                         ),
-                        const SizedBox(width: 20),
-                        const Icon(
-                          Icons.star,
-                          color: Color.fromARGB(255, 198, 178, 3),
-                          size: 16,
-                        ),
-                        Text(eventInfo.rating.toString()),
                       ],
                     ),
-                    const SizedBox(height: 4), // Space between title and location
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Icon(
-                          Icons.location_on,
-                          color: Color(0xFFD79384),
-                          size: 16),
-                        const SizedBox(width: 4),
-                        Text(eventInfo.location, style: const TextStyle(color: Color(0xFFD79384))),
-                      ],
-                    ),
-                    const SizedBox(height: 4), // Space between location and rating
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Icon(
-                          Icons.date_range,
-                          color: Color(0xFFD79384),
-                          size: 16),
-                        const SizedBox(width: 4),
-                        Text(eventInfo.status, style: const TextStyle(color: Color(0xFFD79384))),
-                      ],
-                    ),
-                    const SizedBox(height: 4), // Space between location and rating
-
+                    const SizedBox(height: 4),
                     SizedBox(
-                      height: 23,
+                      height: 24,
                       child: ElevatedButton(
                         onPressed: () {
-                          // Navigate to the event information screen
                           Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -316,16 +348,13 @@ class _HomeScreenState extends State<HomeScreen> {
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF6D071A),
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(32.0),
-                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
                         ),
                         child: const Text(
                           'See More',
                           style: TextStyle(
-                            fontSize: 12.0,
-                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                            color: Colors.white,
                           ),
                         ),
                       ),
@@ -333,29 +362,23 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
-class TouristicPlaceCard extends StatefulWidget {
+class TouristicPlaceCard extends StatelessWidget {
   final PlaceInfo placeInfo;
+  final VoidCallback onFavoriteToggled;
 
-  const TouristicPlaceCard({required this.placeInfo});
-
-  @override
-  _TouristicPlaceCardState createState() => _TouristicPlaceCardState();
-}
-
-class _TouristicPlaceCardState extends State<TouristicPlaceCard> {
-  void _toggleFavorite() {
-    setState(() {
-      widget.placeInfo.isFavorite = !widget.placeInfo.isFavorite;
-    });
-  }
+  const TouristicPlaceCard({
+    required this.placeInfo,
+    required this.onFavoriteToggled,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -364,7 +387,7 @@ class _TouristicPlaceCardState extends State<TouristicPlaceCard> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => InformationPagess(placeInfo: widget.placeInfo),
+            builder: (context) => InformationPagess(placeInfo: placeInfo),
           ),
         );
       },
@@ -381,7 +404,7 @@ class _TouristicPlaceCardState extends State<TouristicPlaceCard> {
               ClipRRect(
                 borderRadius: BorderRadius.circular(20),
                 child: Image.asset(
-                  widget.placeInfo.imageUrl,
+                  placeInfo.imageUrl,
                   height: 120,
                   width: double.infinity,
                   fit: BoxFit.cover,
@@ -393,7 +416,7 @@ class _TouristicPlaceCardState extends State<TouristicPlaceCard> {
                 children: [
                   Expanded(
                     child: Text(
-                      widget.placeInfo.name,
+                      placeInfo.name,
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -403,7 +426,7 @@ class _TouristicPlaceCardState extends State<TouristicPlaceCard> {
                       const Icon(Icons.star, color: Color.fromARGB(255, 198, 178, 3)),
                       const SizedBox(width: 4),
                       Text(
-                        widget.placeInfo.rating.toString(),
+                        placeInfo.rating.toString(),
                         style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFD79384)),
                       ),
                     ],
@@ -417,7 +440,7 @@ class _TouristicPlaceCardState extends State<TouristicPlaceCard> {
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
-                      widget.placeInfo.location, 
+                      placeInfo.location,
                       style: const TextStyle(color: Color(0xFFD79384)),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -427,11 +450,11 @@ class _TouristicPlaceCardState extends State<TouristicPlaceCard> {
               const SizedBox(height: 4),
               Row(
                 children: [
-                  Image.asset(widget.placeInfo.categoryIcon, height: 16, width: 16), 
+                  Image.asset(placeInfo.categoryIcon, height: 16, width: 16),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
-                      widget.placeInfo.category, 
+                      placeInfo.category,
                       style: const TextStyle(color: Color(0xFFD79384)),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -441,10 +464,10 @@ class _TouristicPlaceCardState extends State<TouristicPlaceCard> {
                     alignment: Alignment.bottomRight,
                     child: IconButton(
                       icon: Icon(
-                        widget.placeInfo.isFavorite ? Icons.favorite : Icons.favorite_border,
+                        placeInfo.isFavorite ? Icons.favorite : Icons.favorite_border,
                         color: const Color(0xFF6D071A),
                       ),
-                      onPressed: _toggleFavorite,
+                      onPressed: onFavoriteToggled,
                     ),
                   ),
                 ],

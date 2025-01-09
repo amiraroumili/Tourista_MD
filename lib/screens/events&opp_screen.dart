@@ -1,17 +1,24 @@
 import 'package:flutter/material.dart';
-import 'package:tourista/data/Eventdata.dart'; 
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:tourista/screens/Eventinformation.dart';
 import '../widgets/bottom_nav_bar.dart';
+import '../database/database.dart';
+import 'event_info_new.dart';
+import 'event_bloc/events_bloc.dart';
+import 'event_event/events_event.dart';
+import 'event_state/events_state.dart';
 
 class EventsAndOpportunitiesScreen extends StatefulWidget {
   const EventsAndOpportunitiesScreen({super.key});
 
   @override
-  EventsAndOpportunitiesScreenState createState() => EventsAndOpportunitiesScreenState();
+  EventsAndOpportunitiesScreenState createState() =>
+      EventsAndOpportunitiesScreenState();
 }
 
-class EventsAndOpportunitiesScreenState extends State<EventsAndOpportunitiesScreen> {
-  List<EventInfo> filteredEvents = [];
+class EventsAndOpportunitiesScreenState
+    extends State<EventsAndOpportunitiesScreen> {
+  late EventsBloc _eventsBloc;
 
   String selectedYear = 'Y';
   String selectedMonth = 'M';
@@ -20,14 +27,14 @@ class EventsAndOpportunitiesScreenState extends State<EventsAndOpportunitiesScre
   @override
   void initState() {
     super.initState();
-    filteredEvents = [
-      musicFestival,
-      artExhibition,
-      foodFair,
-      techConference,
-      bookFair,
-      filmFestival,
-    ]; 
+    _eventsBloc = EventsBloc(dbService: DatabaseService());
+    _eventsBloc.add(LoadEvents());
+  }
+
+  @override
+  void dispose() {
+    _eventsBloc.close();
+    super.dispose();
   }
 
   @override
@@ -48,7 +55,6 @@ class EventsAndOpportunitiesScreenState extends State<EventsAndOpportunitiesScre
               padding: const EdgeInsets.all(16.0),
               child: Row(
                 children: [
-              
                   Expanded(
                     child: Container(
                       height: 40,
@@ -64,7 +70,8 @@ class EventsAndOpportunitiesScreenState extends State<EventsAndOpportunitiesScre
                           child: DropdownButton<String>(
                             value: selectedYear,
                             dropdownColor: Colors.white,
-                            icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF6D071A)),
+                            icon: const Icon(Icons.arrow_drop_down,
+                                color: Color(0xFF6D071A)),
                             style: const TextStyle(color: Color(0xFF6D071A)),
                             items: ['Y', '2021', '2022', '2023', '2024', '2025']
                                 .map((String value) {
@@ -84,7 +91,6 @@ class EventsAndOpportunitiesScreenState extends State<EventsAndOpportunitiesScre
                     ),
                   ),
                   const SizedBox(width: 8),
-             
                   Expanded(
                     child: Container(
                       height: 40,
@@ -100,10 +106,24 @@ class EventsAndOpportunitiesScreenState extends State<EventsAndOpportunitiesScre
                           child: DropdownButton<String>(
                             value: selectedMonth,
                             dropdownColor: Colors.white,
-                            icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF6D071A)),
+                            icon: const Icon(Icons.arrow_drop_down,
+                                color: Color(0xFF6D071A)),
                             style: const TextStyle(color: Color(0xFF6D071A)),
-                            items: ['M', '01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12']
-                                .map((String value) {
+                            items: [
+                              'M',
+                              '01',
+                              '02',
+                              '03',
+                              '04',
+                              '05',
+                              '06',
+                              '07',
+                              '08',
+                              '09',
+                              '10',
+                              '11',
+                              '12'
+                            ].map((String value) {
                               return DropdownMenuItem<String>(
                                 value: value,
                                 child: Text(value),
@@ -120,7 +140,6 @@ class EventsAndOpportunitiesScreenState extends State<EventsAndOpportunitiesScre
                     ),
                   ),
                   const SizedBox(width: 8),
-              
                   Expanded(
                     child: Container(
                       height: 40,
@@ -136,10 +155,16 @@ class EventsAndOpportunitiesScreenState extends State<EventsAndOpportunitiesScre
                           child: DropdownButton<String>(
                             value: selectedDay,
                             dropdownColor: Colors.white,
-                            icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF6D071A)),
+                            icon: const Icon(Icons.arrow_drop_down,
+                                color: Color(0xFF6D071A)),
                             style: const TextStyle(color: Color(0xFF6D071A)),
-                            items: ['D', ...List.generate(31, (index) => (index + 1).toString().padLeft(2, '0'))]
-                                .map((String value) {
+                            items: [
+                              'D',
+                              ...List.generate(
+                                  31,
+                                  (index) =>
+                                      (index + 1).toString().padLeft(2, '0'))
+                            ].map((String value) {
                               return DropdownMenuItem<String>(
                                 value: value,
                                 child: Text(value),
@@ -156,34 +181,16 @@ class EventsAndOpportunitiesScreenState extends State<EventsAndOpportunitiesScre
                     ),
                   ),
                   const SizedBox(width: 8),
-              
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF6D071A),
                       foregroundColor: Colors.white,
                     ),
                     onPressed: () {
-                      setState(() {
-                    
-                        filteredEvents = [
-                          musicFestival,
-                          artExhibition,
-                          foodFair,
-                          techConference,
-                          bookFair,
-                          filmFestival,
-                        ].where((event) {
-                          final eventDate = DateTime.parse(event.status);
-                          final selectedDate = DateTime(
-                            selectedYear == 'Y' ? eventDate.year : int.parse(selectedYear),
-                            selectedMonth == 'M' ? eventDate.month : int.parse(selectedMonth),
-                            selectedDay == 'D' ? eventDate.day : int.parse(selectedDay),
-                          );
-                          return eventDate.year == selectedDate.year &&
-                              eventDate.month == selectedDate.month &&
-                              eventDate.day == selectedDate.day;
-                        }).toList();
-                      });
+                      _eventsBloc.add(FilterEvents(
+                          year: selectedYear,
+                          month: selectedMonth,
+                          day: selectedDay));
                     },
                     child: const Text('Search'),
                   ),
@@ -191,15 +198,26 @@ class EventsAndOpportunitiesScreenState extends State<EventsAndOpportunitiesScre
               ),
             ),
             Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.all(16.0),
-                itemCount: filteredEvents.length,
-                itemBuilder: (context, index) {
-                  final event = filteredEvents[index];
-                  return _eventCard(
-                    context,
-                    event,
-                  );
+              child: BlocBuilder<EventsBloc, EventsState>(
+                bloc: _eventsBloc,
+                builder: (context, state) {
+                  if (state is EventsLoading) {
+                    return const Center(child: CircularProgressIndicator());
+                  } else if (state is EventsLoaded) {
+                    print('Loaded events: ${state.events}'); // Debugging: Print loaded events
+                    return ListView.builder(
+                      padding: const EdgeInsets.all(16.0),
+                      itemCount: state.events.length,
+                      itemBuilder: (context, index) {
+                        final event = state.events[index];
+                        return _eventCard(context, event);
+                      },
+                    );
+                  } else if (state is EventsError) {
+                    return Center(child: Text(state.message));
+                  } else {
+                    return const Center(child: Text('No events found.'));
+                  }
                 },
               ),
             ),
@@ -215,7 +233,7 @@ class EventsAndOpportunitiesScreenState extends State<EventsAndOpportunitiesScre
       color: const Color.fromARGB(255, 251, 248, 245),
       margin: const EdgeInsets.all(8),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start, 
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
             padding: const EdgeInsets.all(12.0),
@@ -226,7 +244,7 @@ class EventsAndOpportunitiesScreenState extends State<EventsAndOpportunitiesScre
                     color: Colors.black.withOpacity(0.1),
                     spreadRadius: 0.2,
                     blurRadius: 10,
-                    offset: const Offset(0, 2), 
+                    offset: const Offset(0, 2),
                   ),
                 ],
                 borderRadius: BorderRadius.circular(20),
@@ -253,8 +271,9 @@ class EventsAndOpportunitiesScreenState extends State<EventsAndOpportunitiesScre
                     children: [
                       Expanded(
                         child: Text(
-                          eventInfo.name,
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          eventInfo.title,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 16),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -264,7 +283,7 @@ class EventsAndOpportunitiesScreenState extends State<EventsAndOpportunitiesScre
                         color: Color.fromARGB(255, 198, 178, 3),
                         size: 15,
                       ),
-                      Text(eventInfo.rating.toString()),
+                      // Text(eventInfo.rating.toString()),
                     ],
                   ),
                   const SizedBox(height: 4),
@@ -278,14 +297,14 @@ class EventsAndOpportunitiesScreenState extends State<EventsAndOpportunitiesScre
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
-                          eventInfo.location,
+                          eventInfo.wilaya,
                           style: const TextStyle(color: Color(0xFFD79384)),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 4), 
+                  const SizedBox(height: 4),
                   Row(
                     children: [
                       const Icon(
@@ -296,23 +315,23 @@ class EventsAndOpportunitiesScreenState extends State<EventsAndOpportunitiesScre
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
-                          eventInfo.status,
+                          eventInfo.date,
                           style: const TextStyle(color: Color(0xFFD79384)),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 4), 
+                  const SizedBox(height: 4),
                   SizedBox(
                     height: 23,
                     child: ElevatedButton(
                       onPressed: () {
-               
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => Eventinformation(eventInfo: eventInfo),
+                            builder: (context) =>
+                                Eventinformation(eventInfo: eventInfo),
                           ),
                         );
                       },

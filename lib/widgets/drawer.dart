@@ -1,8 +1,19 @@
-// custom_drawer.dart
 import 'package:flutter/material.dart';
+import '../database/database.dart';
 
 class CustomDrawer extends StatelessWidget {
-  const CustomDrawer({super.key});
+  final String userEmail;
+  final DatabaseService databaseService;
+
+  const CustomDrawer({
+    super.key,
+    required this.userEmail,
+    required this.databaseService,
+  });
+
+  Future<Map<String, dynamic>?> _fetchUserData() async {
+    return await databaseService.getUser(userEmail);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -11,52 +22,74 @@ class CustomDrawer extends StatelessWidget {
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
-          // DrawerHeader with profile section
-          Container(
-            padding: const EdgeInsets.all(0),
-            height: 180,
-            decoration: const BoxDecoration(
-              color: Color(0xFFF9E8E8),
-            ),
-            child: const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // Profile image
-                  CircleAvatar(
-                    radius: 30,
-                    backgroundImage: AssetImage('assets/Images/Profile/amira.png'),
-                  ),
-                  SizedBox(width: 16),
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
+          FutureBuilder<Map<String, dynamic>?>( 
+            future: _fetchUserData(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              if (snapshot.hasError) {
+                return Center(
+                  child: Text('Error: ${snapshot.error}'),
+                );
+              }
+
+              if (!snapshot.hasData || snapshot.data == null) {
+                return const Center(
+                  child: Text('User not found'),
+                );
+              }
+
+              final userData = snapshot.data!;
+              final String profileImagePath = userData['profileImage'] ?? 'assets/Images/Profile/profile.png';
+              final String userName = '${userData['firstName']} ${userData['familyName']}';
+              final String userEmail = userData['email'];
+
+              return Container(
+                padding: const EdgeInsets.all(0),
+                height: 180,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFF9E8E8),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Text(
-                        'Roumili Amira',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF6D071A),
-                        ),
+                      CircleAvatar(
+                        radius: 30,
+                        backgroundImage: AssetImage(profileImagePath),
                       ),
-                      Text(
-                        'amira.roumili@gmail.com',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Color(0xFF6D071A),
-                        ),
+                      const SizedBox(width: 16),
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            userName,
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF6D071A),
+                            ),
+                          ),
+                          Text(
+                            userEmail,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              color: Color(0xFF6D071A),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ],
-              ),
-            ),
+                ),
+              );
+            },
           ),
-
-          // Menu items with dividers
           _buildMenuItem('Profile', Icons.person, context),
           _buildDivider(),
           _buildMenuItem('Events', Icons.event, context),
@@ -69,10 +102,7 @@ class CustomDrawer extends StatelessWidget {
           _buildDivider(),
           _buildMenuItem('Suggestions & Feedback', Icons.feedback, context),
           _buildDivider(),
-
-         
           ListTile(
-         
             onTap: () async {
               showDialog(
                 context: context,
@@ -107,20 +137,27 @@ class CustomDrawer extends StatelessWidget {
       ),
     );
   }
-
+  
   Widget _buildMenuItem(String title, IconData icon, BuildContext context) {
     return ListTile(
       title: Text(
         title,
         style: const TextStyle(
-          fontWeight: FontWeight.bold, 
+          fontWeight: FontWeight.bold,
         ),
       ),
       leading: Icon(icon, color: const Color(0xFF6D071A)),
       onTap: () {
         switch (title) {
           case 'Profile':
-            Navigator.pushNamed(context, '/profile');
+            Navigator.pushNamed(
+              context,
+              '/profile',
+              arguments: {
+                'userEmail': userEmail,
+                'databaseService': databaseService,
+              },
+            );
             break;
           case 'Events':
             Navigator.pushNamed(context, '/ev&opp');
