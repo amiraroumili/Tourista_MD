@@ -4,9 +4,14 @@ import '../widgets/search_bar.dart' as custom;
 import '../widgets/drawer.dart';
 import 'package:tourista/screens/Eventinformation.dart';
 import 'package:tourista/screens/Places_information_page.dart';
-import '/database/database.dart';
 import 'event_info_new.dart';
 import 'Profile_page.dart';
+import '../api/place_api.dart';
+import '../api/event_api.dart';
+import '../Admin/admin_utils.dart';
+import '../Admin/place_info.dart';
+import '../Admin/event_info.dart';
+import 'place_class.dart';
 
 class HomeScreen extends StatefulWidget {
   final String userEmail;
@@ -22,53 +27,47 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  final DatabaseService _databaseService = DatabaseService();
   String get currentUserEmail => widget.userEmail;
+  bool get isAdmin => AdminUtils.isAdmin(currentUserEmail);
   String selectedCategory = 'All';
   String selectedWilaya = 'Wilaya';
-  List<PlaceInfo> touristicPlaces = [];
-  List<PlaceInfo> filteredTouristicPlaces = [];
   List<EventInfo> events = [];
+  final EventService _eventService = EventService();
+  final PlaceApi _placeService = PlaceApi();
 
   @override
   void initState() {
     super.initState();
     selectedCategory = 'All';
-    _loadPlaces();
     _loadEvents();
   }
 
-  // Add this method to handle favorite toggle
   Future<void> _toggleFavorite(PlaceInfo placeInfo) async {
-    await _databaseService.updatePlaceFavoriteStatus(
-      placeInfo.id!,
-      !placeInfo.isFavorite,
-    );
-    // Reload places immediately after toggling favorite
-    await _loadPlaces();
-  }
-
-  // Modify the existing _loadPlaces method to ensure it updates the UI
-  Future<void> _loadPlaces() async {
-    final places = await _databaseService.getAllPlaces();
-    if (mounted) {  // Check if widget is still mounted
-      setState(() {
-        touristicPlaces = places.map((place) => PlaceInfo.fromMap(place)).toList();
-        _filterPlaces();
-      });
+    try {
+      await _placeService.toggleFavorite(placeInfo.id.toString(), !placeInfo.isFavorite);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Unable to update favorite status. Please try again.'))
+      );
     }
   }
 
   Future<void> _loadEvents() async {
     try {
-      final eventsData = await _databaseService.getAllEvents();
-      setState(() {
-        events = eventsData.map((eventMap) => EventInfo.fromMap(eventMap)).toList();
-        events.sort((a, b) => DateTime.parse(b.date).compareTo(DateTime.parse(a.date))); // Sort events by date in descending order
-        events = events.take(3).toList(); // Take only the latest three events
-      });
-      print('Loaded ${events.length} events'); // Debug print
+      final eventsData = await _eventService.getEvents();
+      if (mounted) {
+        setState(() {
+          events = eventsData;
+          events.sort((a, b) => DateTime.parse(b.date).compareTo(DateTime.parse(a.date)));
+          events = events.take(3).toList();
+        });
+      }
     } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load events: $e')),
+        );
+      }
       print('Error loading events: $e');
     }
   }
@@ -76,29 +75,17 @@ class _HomeScreenState extends State<HomeScreen> {
   void _onCategorySelected(String category) {
     setState(() {
       selectedCategory = category;
-      _filterPlaces();
     });
   }
 
   void _onWilayaSelected(String wilaya) {
     setState(() {
       selectedWilaya = wilaya;
-      _filterPlaces();
-    });
-  }
-
-  void _filterPlaces() {
-    setState(() {
-      filteredTouristicPlaces = touristicPlaces.where((place) {
-        final matchesCategory = selectedCategory == 'All' || place.category == selectedCategory;
-        final matchesWilaya = selectedWilaya == 'Wilaya' || place.location == selectedWilaya.split('. ')[1];
-        return matchesCategory && matchesWilaya;
-      }).toList();
     });
   }
 
   @override
-  Widget build(BuildContext context) {
+ Widget build(BuildContext context) {
     return Scaffold(
       key: _scaffoldKey,
       appBar: AppBar(
@@ -114,13 +101,34 @@ class _HomeScreenState extends State<HomeScreen> {
               },
               icon: const Icon(Icons.menu, color: Color(0xFF6D071A)),
             ),
-            Image.asset('assets/Images/Logo/logo_red_begin.png', height: 40),
+            Row(
+              children: [
+                Image.asset('assets/Images/Logo/logo_red_begin.png', height: 40),
+                if (isAdmin)
+                  Container(
+                    margin: EdgeInsets.only(left: 8),
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Color(0xFF6D071A),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      'ADMIN',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
             IconButton(
               icon: const Icon(Icons.person, color: Color(0xFF6D071A)),
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => ProfilePage(userEmail: currentUserEmail, databaseService: DatabaseService())),
+                  MaterialPageRoute(builder: (context) => ProfilePage(userEmail: currentUserEmail)),
                 );
               },
             ),
@@ -129,8 +137,14 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       drawer: CustomDrawer(
         userEmail: currentUserEmail,
-        databaseService: DatabaseService(),
       ),
+      floatingActionButton: isAdmin ? FloatingActionButton(
+        backgroundColor: Color(0xFF6D071A),
+        child: Icon(Icons.add, color: Colors.white),
+        onPressed: () {
+          _showAddPlaceDialog(context);
+        },
+      ) : null,
       body: Container(
         color: Colors.white,
         child: SingleChildScrollView(
@@ -138,7 +152,6 @@ class _HomeScreenState extends State<HomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               custom.SearchBar(onWilayaSelected: _onWilayaSelected),
-              // Categories Section
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16.0),
                 child: Text('Categories', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF6D071A))),
@@ -157,7 +170,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
-              // Events & Opportunities Section
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 8.0),
                 child: Row(
@@ -197,34 +209,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       itemBuilder: (context, index) => _eventCard(context, events[index]),
                     ),
               ),
-              // Touristic Places Section
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                 child: Text('Touristic Places', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF6D071A))),
               ),
-              Container(
-                color: Colors.white,
-                child: filteredTouristicPlaces.isEmpty
-                    ? Container(
-                        color: Colors.white,
-                        margin: const EdgeInsets.only(bottom: 100),
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 25.0),
-                        alignment: Alignment.center,
-                        child: Text('No places found.', style: TextStyle(fontSize: 16, color: Colors.black.withOpacity(0.8))),
-                      )
-                    : GridView.count(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        crossAxisCount: 2,
-                        childAspectRatio: 0.66,
-                        children: filteredTouristicPlaces.map((placeInfo) {
-                          return TouristicPlaceCard(
-                            placeInfo: placeInfo,
-                            onFavoriteToggled: () => _toggleFavorite(placeInfo),
-                          );
-                        }).toList(),
-                      ),
-              ),
+              _buildTouristicPlacesSection(),
             ],
           ),
         ),
@@ -232,7 +221,55 @@ class _HomeScreenState extends State<HomeScreen> {
       bottomNavigationBar: BottomNavBar(currentIndex: 2),
     );
   }
-
+  void _showAddPlaceDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Add New Place or Event'),
+          actions: [
+            
+             ElevatedButton(
+              onPressed: () {
+                // Navigate to add place screen
+                Navigator.pushNamed(context, '/add_event');
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Color(0xFF6D071A),
+              ),
+              child: Text('Add Event' , 
+              style: 
+              TextStyle( 
+                color: Colors.white,
+              ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                // Navigate to add place screen
+                Navigator.pushNamed(context, '/add_place');
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Color(0xFF6D071A),
+              ),
+              child: Text('Add Place' , 
+              style: 
+              TextStyle( 
+                color: Colors.white,
+              ),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: Text('Cancel', style: TextStyle(color: Color(0xFF6D071A))),
+            ),
+          ],
+        );
+      },
+    );
+  }
   Widget _categoryChip(String label, String imagePath, String selectedImagePath) {
     bool isSelected = selectedCategory == label;
     return GestureDetector(
@@ -264,9 +301,9 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _eventCard(BuildContext context, EventInfo eventInfo) {
+Widget _eventCard(BuildContext context, EventInfo eventInfo) {
     return Container(
-      width: 300, // Fixed width for the card
+      width: 300,
       margin: const EdgeInsets.all(6),
       child: Card(
         color: const Color.fromARGB(255, 251, 248, 245),
@@ -277,12 +314,35 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: const EdgeInsets.all(8.0),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(10),
-                  child: Image.asset(
-                    eventInfo.imageUrl,
-                    width: 100,
-                    height: 100,
-                    fit: BoxFit.cover,
-                  ),
+                  child: eventInfo.imageUrl.startsWith('http')
+                    ? Image.network(
+                        eventInfo.imageUrl,
+                        width: 100,
+                        height: 100,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            width: 100,
+                            height: 100,
+                            color: Colors.grey[300],
+                            child: const Icon(Icons.error),
+                          );
+                        },
+                      )
+                    : Image.asset(
+                        eventInfo.imageUrl,
+                        width: 100,
+                        height: 100,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            width: 100,
+                            height: 100,
+                            color: Colors.grey[300],
+                            child: const Icon(Icons.error),
+                          );
+                        },
+                      ),
                 ),
               ),
               Expanded(
@@ -347,7 +407,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => Eventinformation(eventInfo: eventInfo),
+                                builder: (context) => isAdmin
+                                  ? AdminEventInformation(eventInfo: eventInfo)
+                                  : Eventinformation(eventInfo: eventInfo),
                               ),
                             );
                           },
@@ -374,33 +436,84 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+
+ Widget _buildTouristicPlacesSection() {
+    return StreamBuilder<List<PlaceInfo>>(
+      stream: PlaceApi.getPlacesStream().map((list) => list.map((map) => PlaceInfo.fromMap(map)).toList()),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(child: Text('Error loading places: ${snapshot.error}'));
+        }
+
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        }
+
+        final places = snapshot.data ?? [];
+        final filteredPlaces = places.where((place) {
+          final matchesCategory = selectedCategory == 'All' || place.category == selectedCategory;
+          final matchesWilaya = selectedWilaya == 'Wilaya' || place.location == selectedWilaya.split('. ')[1];
+          return matchesCategory && matchesWilaya;
+        }).toList();
+
+        if (filteredPlaces.isEmpty) {
+          return Container(
+            margin: const EdgeInsets.only(bottom: 100),
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 25.0),
+            alignment: Alignment.center,
+            child: Text('No places found.',
+              style: TextStyle(fontSize: 16, color: Colors.black.withOpacity(0.8))
+            ),
+          );
+        }
+
+        return GridView.count(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: 2,
+          childAspectRatio: 0.66,
+          children: filteredPlaces.map((placeInfo) {
+            return TouristicPlaceCard(
+              placeInfo: placeInfo,
+              onFavoriteToggled: () => _toggleFavorite(placeInfo),
+              isAdmin: isAdmin, 
+            );
+          }).toList(),
+        );
+      },
+    );
+  }
 }
 
 class TouristicPlaceCard extends StatelessWidget {
   final PlaceInfo placeInfo;
   final VoidCallback onFavoriteToggled;
+  final bool isAdmin; 
 
   const TouristicPlaceCard({
     required this.placeInfo,
     required this.onFavoriteToggled,
+    this.isAdmin = false, 
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => InformationPagess(placeInfo: placeInfo),
-          ),
-        );
-      },
-      child: Card(
-        color: const Color(0xFFF9F2EC),
-        margin: const EdgeInsets.all(8),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        elevation: 3,
+    return Card(
+      color: const Color(0xFFF9F2EC),
+      margin: const EdgeInsets.all(8),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      elevation: 3,
+      child: InkWell( 
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => isAdmin
+                ? AdminPlaceInformation(placeInfo: placeInfo)
+                : InformationPagess(placeInfo: placeInfo),
+            ),
+          );
+        },
         child: Padding(
           padding: const EdgeInsets.all(8.0),
           child: Column(
@@ -408,12 +521,19 @@ class TouristicPlaceCard extends StatelessWidget {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(20),
-                child: Image.asset(
-                  placeInfo.imageUrl,
-                  height: 120,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                ),
+                child: placeInfo.imageUrl.startsWith('http')
+                    ? Image.network(
+                        placeInfo.imageUrl,
+                        height: 120,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                      )
+                    : Image.asset(
+                        placeInfo.imageUrl,
+                        height: 120,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                      ),
               ),
               const SizedBox(height: 8),
               Row(

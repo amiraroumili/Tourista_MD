@@ -19,6 +19,13 @@ dependencies:
   path: ^1.8.0
   flutter_bloc: ^8.0.0
   carousel_slider: ^4.2.1
+  equatable: ^2.0.3
+  firebase_core: ^3.11.0
+  cloud_firestore: ^5.6.3
+  firebase_auth: ^5.4.2
+  fl_chart: ^0.40.0
+
+  
 
 
 
@@ -79,7 +86,7 @@ flutter:
     - assets/Images/Events/music_fest.jpg
     - assets/Images/Events/tech_conf.jpg
     - assets/Images/Profile/amira.png
-    - assets/Images/Profile/Profile.png
+    - assets/Images/Profile/profile.png
     - assets/Images/Guides/nehad-benz.jpg
     - assets/Images/Guides/adel-moncef.jpg
     - assets/Images/Guides/mama-taibi.jpg
@@ -95,5 +102,4 @@ flutter:
     - family: Baloo Bhai 2
       fonts:
         - asset: assets/fonts/BalooBhai2_Regular.ttf
-
 

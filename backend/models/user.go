@@ -1,13 +1,11 @@
-// models/user.go
 package models
 
-import "gorm.io/gorm"
-
 type User struct {
-    gorm.Model
-    Email      string `json:"email" binding:"required,email" gorm:"unique"`
-    Password   string `json:"password" binding:"required"`
-    FirstName  string `json:"firstName" binding:"required"`
-    FamilyName string `json:"familyName" binding:"required"`
-    Wilaya     string `json:"wilaya" binding:"required"`
+    ID           string `json:"id" firestore:"-"`
+    Email        string `json:"email" firestore:"email"`
+    Password     string `json:"password" firestore:"password"`
+    FirstName    string `json:"firstName" firestore:"firstName"`
+    FamilyName   string `json:"familyName" firestore:"familyName"`
+    Wilaya       string `json:"wilaya" firestore:"wilaya"`
+    ProfileImage string `json:"profileImage" firestore:"profileImage"`
 }

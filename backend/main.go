@@ -1,18 +1,13 @@
-<<<<<<< HEAD
-// main.go
-=======
->>>>>>> 5ddc415 (Refactor backend structure and update dependencies)
 package main
 
 import (
     "tourista/backend/config"
     "tourista/backend/routes"
     "github.com/gin-gonic/gin"
-<<<<<<< HEAD
     "github.com/gin-contrib/cors"
+    "log"
 )
 
-// Update main.go to include user routes
 func main() {
     r := gin.Default()
 
@@ -22,28 +17,30 @@ func main() {
         AllowMethods:    []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
         AllowHeaders:    []string{"Origin", "Content-Type", "Accept", "Authorization"},
     }))
+    // Initialize Cloudinary client
+    config.InitCloudinary()
+    if config.CloudinaryClient == nil {
+        log.Fatal("Failed to initialize Cloudinary client")
+    }
+    // Serve static files for profile images
+    r.Static("/uploads", "./uploads")
 
-=======
-)
-
-func main() {
-    // Initialize Gin router
-    r := gin.Default()
-
->>>>>>> 5ddc415 (Refactor backend structure and update dependencies)
     // Connect to database
     config.ConnectDatabase()
+    defer config.CloseDatabase()
 
     // Define routes
-<<<<<<< HEAD
     routes.UserRoutes(r)
     routes.PlaceRoutes(r)
     routes.EventRoutes(r)
-
-=======
-    routes.PlaceRoutes(r)
-
-    // Start the server
->>>>>>> 5ddc415 (Refactor backend structure and update dependencies)
+    routes.GuideRoutes(r)
+    routes.WilayaRoutes(r)
+    routes.FeedbackRoutes(r)
+    routes.FavoriteRoutes(r)
+    routes.NotificationRoutes(r)
+    
     r.Run(":8081")
+
+    
+    
 }

@@ -1,18 +1,13 @@
-// models/event.go
 package models
 
-import (
-    "gorm.io/gorm"
-)
-
-// Event represents an event in the app
 type Event struct {
-    gorm.Model
-    Title       string `json:"title" binding:"required"`
-    Description string `json:"description" binding:"required"`
-    Date        string `json:"date" binding:"required"`
-    Wilaya      string `json:"wilaya" binding:"required"`
-    Location    string `json:"location" binding:"required"`
-    ImageURL    string `json:"imageUrl"`
-    Category    string `json:"category" binding:"required"`
+    ID          string `json:"id" firestore:"-"`
+    Title       string `json:"title" firestore:"title"`
+    Description string `json:"description" firestore:"description"`
+    Date        string `json:"date" firestore:"date"`
+    Wilaya      string `json:"wilaya" firestore:"wilaya"`
+    Location    string `json:"location" firestore:"location"`
+    ImageURL    string `json:"imageUrl" firestore:"imageUrl"`
+    Category    string `json:"category" firestore:"category"`
+    CreatedAt   int64  `json:"createdAt" firestore:"createdAt"`
 }

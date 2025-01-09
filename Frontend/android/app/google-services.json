@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "734567440483",
+    "project_id": "tourista-backend",
+    "storage_bucket": "tourista-backend.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:734567440483:android:d9ccf978defdaca963d856",
+        "android_client_info": {
+          "package_name": "com.example.tourista"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD6G8_5jdPcv0c3wHJUM0ZJofeUwFKc578"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

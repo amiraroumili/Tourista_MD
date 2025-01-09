@@ -1,24 +1,48 @@
-// controllers/event_controller.go
 package controllers
 
 import (
+    "context"
+    "net/http"
     "tourista/backend/config"
     "tourista/backend/models"
     "github.com/gin-gonic/gin"
-    "net/http"
+    "google.golang.org/api/iterator"
+    "strconv"
+    "time"
+  
 )
 
-// GetEventsHandler fetches all events
 func GetEventsHandler(c *gin.Context) {
+    ctx := context.Background()
+    iter := config.FirestoreClient.Collection("events").Documents(ctx)
+    
     var events []models.Event
-    if err := config.DB.Find(&events).Error; err != nil {
-        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch events"})
-        return
+    for {
+        doc, err := iter.Next()
+        if err == iterator.Done {
+            break
+        }
+        if err != nil {
+            c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch events"})
+            return
+        }
+
+        var event models.Event
+        if err := doc.DataTo(&event); err != nil {
+            c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse event data"})
+            return
+        }
+        if _, err := strconv.ParseUint(doc.Ref.ID, 10, 32); err != nil {
+            c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse event ID"})
+            return
+        }
+        event.ID = doc.Ref.ID
+        events = append(events, event)
     }
+
     c.JSON(http.StatusOK, events)
 }
 
-// AddEventHandler adds a new event
 func AddEventHandler(c *gin.Context) {
     var event models.Event
     if err := c.ShouldBindJSON(&event); err != nil {
@@ -26,46 +50,71 @@ func AddEventHandler(c *gin.Context) {
         return
     }
 
-    if err := config.DB.Create(&event).Error; err != nil {
+    ctx := context.Background()
+    event.CreatedAt = time.Now().Unix()
+    
+    docRef, _, err := config.FirestoreClient.Collection("events").Add(ctx, event)
+    if err != nil {
         c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add event"})
         return
     }
 
+    // Create notification
+    notification := models.Notification{
+        ID:        docRef.ID + "_notif",
+        Title:     "New Event Added: " + event.Title,
+        Location:  event.Location,
+        Date:      time.Now().Format("01/02/2006"),
+        Time:      time.Now().Format("03:04 PM"),
+        CreatedAt: time.Now().Unix(),
+    }
+
+    _, err = config.FirestoreClient.Collection("notifications").Doc(notification.ID).Set(ctx, notification)
+    if err != nil {
+        // Log the error but don't fail the event creation
+        println("Failed to create notification:", err.Error())
+    }
+
+    event.ID = docRef.ID
     c.JSON(http.StatusCreated, event)
 }
 
-// GetEventHandler fetches a specific event by its ID
 func GetEventHandler(c *gin.Context) {
     id := c.Param("id")
-    var event models.Event
-    
-    if err := config.DB.First(&event, id).Error; err != nil {
+    ctx := context.Background()
+
+    doc, err := config.FirestoreClient.Collection("events").Doc(id).Get(ctx)
+    if err != nil {
         c.JSON(http.StatusNotFound, gin.H{"error": "Event not found"})
         return
     }
+
+    var event models.Event
+    if err := doc.DataTo(&event); err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse event data"})
+        return
+    }
+    if _, err := strconv.ParseUint(doc.Ref.ID, 10, 32); err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse event ID"})
+        return
+    }
+    event.ID = doc.Ref.ID
     
     c.JSON(http.StatusOK, event)
 }
 
-// UpdateEventHandler updates an existing event
 func UpdateEventHandler(c *gin.Context) {
     id := c.Param("id")
     var event models.Event
     
-    // Check if event exists
-    if err := config.DB.First(&event, id).Error; err != nil {
-        c.JSON(http.StatusNotFound, gin.H{"error": "Event not found"})
-        return
-    }
-    
-    // Bind updated data
     if err := c.ShouldBindJSON(&event); err != nil {
         c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
         return
     }
-    
-    // Save updates
-    if err := config.DB.Save(&event).Error; err != nil {
+
+    ctx := context.Background()
+    _, err := config.FirestoreClient.Collection("events").Doc(id).Set(ctx, event)
+    if err != nil {
         c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update event"})
         return
     }
@@ -73,19 +122,12 @@ func UpdateEventHandler(c *gin.Context) {
     c.JSON(http.StatusOK, event)
 }
 
-// DeleteEventHandler deletes an event
 func DeleteEventHandler(c *gin.Context) {
     id := c.Param("id")
-    var event models.Event
     
-    // Check if event exists
-    if err := config.DB.First(&event, id).Error; err != nil {
-        c.JSON(http.StatusNotFound, gin.H{"error": "Event not found"})
-        return
-    }
-    
-    // Delete the event
-    if err := config.DB.Delete(&event).Error; err != nil {
+    ctx := context.Background()
+    _, err := config.FirestoreClient.Collection("events").Doc(id).Delete(ctx)
+    if err != nil {
         c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete event"})
         return
     }

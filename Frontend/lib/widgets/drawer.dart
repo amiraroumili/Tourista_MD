@@ -1,18 +1,22 @@
 import 'package:flutter/material.dart';
-import '../database/database.dart';
+import '../api/user_api.dart';
+import '../Admin/admin_utils.dart';
 
 class CustomDrawer extends StatelessWidget {
   final String userEmail;
-  final DatabaseService databaseService;
 
   const CustomDrawer({
     super.key,
     required this.userEmail,
-    required this.databaseService,
   });
 
   Future<Map<String, dynamic>?> _fetchUserData() async {
-    return await databaseService.getUser(userEmail);
+    try {
+      return await UserApi.getUser(userEmail);
+    } catch (e) {
+      print('Error fetching user data: $e');
+      return null;
+    }
   }
 
   @override
@@ -45,6 +49,9 @@ class CustomDrawer extends StatelessWidget {
               final String profileImagePath = userData['profileImage'] ?? 'assets/Images/Profile/profile.png';
               final String userName = '${userData['firstName']} ${userData['familyName']}';
               final String userEmail = userData['email'];
+             // final bool isAdmin = AdminUtils.isAdmin(userEmail);
+
+              print('Profile Image Path: $profileImagePath'); // Debug print
 
               return Container(
                 padding: const EdgeInsets.all(0),
@@ -60,29 +67,42 @@ class CustomDrawer extends StatelessWidget {
                     children: [
                       CircleAvatar(
                         radius: 30,
-                        backgroundImage: AssetImage(profileImagePath),
+                        backgroundImage: userData['profileImage'] != null && userData['profileImage'].isNotEmpty
+                          ? NetworkImage(
+                              userData['profileImage'].startsWith('http') 
+                                ? userData['profileImage'] 
+                                : 'http://192.168.216.10:8081${userData['profileImage']}',
+                            )
+                          : AssetImage('assets/Images/Profile/profile.png') as ImageProvider,
+                        onBackgroundImageError: (_, __) {
+                          print('Failed to load profile image');
+                        },
                       ),
                       const SizedBox(width: 16),
-                      Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            userName,
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF6D071A),
+                      Expanded(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              userName,
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF6D071A),
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
-                          Text(
-                            userEmail,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              color: Color(0xFF6D071A),
+                            Text(
+                              userEmail,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                color: Color(0xFF6D071A),
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -92,16 +112,25 @@ class CustomDrawer extends StatelessWidget {
           ),
           _buildMenuItem('Profile', Icons.person, context),
           _buildDivider(),
-          _buildMenuItem('Events', Icons.event, context),
-          _buildDivider(),
-          _buildMenuItem('Favourite Places', Icons.favorite, context),
-          _buildDivider(),
-          _buildMenuItem('Guides Information', Icons.info, context),
-          _buildDivider(),
-          _buildMenuItem('Contact-us', Icons.contact_mail, context),
-          _buildDivider(),
-          _buildMenuItem('Suggestions & Feedback', Icons.feedback, context),
-          _buildDivider(),
+          if (AdminUtils.isAdmin(userEmail)) ...[
+            _buildMenuItem('Add Place', Icons.add_location, context),
+            _buildDivider(),
+            _buildMenuItem('Add Event', Icons.event, context),
+            _buildDivider(),
+            _buildMenuItem('Statistics', Icons.bar_chart, context),
+            _buildDivider(),
+          ] else ...[
+            _buildMenuItem('Events', Icons.event, context),
+            _buildDivider(),
+            _buildMenuItem('Favourite Places', Icons.favorite, context),
+            _buildDivider(),
+            _buildMenuItem('Guides Information', Icons.info, context),
+            _buildDivider(),
+            _buildMenuItem('Contact-us', Icons.contact_mail, context),
+            _buildDivider(),
+            _buildMenuItem('Suggestions & Feedback', Icons.feedback, context),
+            _buildDivider(),
+          ],
           ListTile(
             onTap: () async {
               showDialog(
@@ -155,9 +184,17 @@ class CustomDrawer extends StatelessWidget {
               '/profile',
               arguments: {
                 'userEmail': userEmail,
-                'databaseService': databaseService,
               },
             );
+            break;
+          case 'Add Place':
+            Navigator.pushNamed(context, '/add_place');
+            break;
+          case 'Add Event':
+            Navigator.pushNamed(context, '/add_event');
+            break;
+          case 'Statistics':
+            Navigator.pushNamed(context, '/statistics');
             break;
           case 'Events':
             Navigator.pushNamed(context, '/ev&opp');

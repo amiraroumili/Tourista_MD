@@ -1,176 +1,247 @@
 import 'package:flutter/material.dart';
-import '../database/database.dart';
-import 'edit_profile_page.dart';
+import '../screens/Edit_profile_page.dart';
+import '../api/user_api.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   final String userEmail;
-  final DatabaseService databaseService;
 
   const ProfilePage({
     Key? key,
     required this.userEmail,
-    required this.databaseService,
   }) : super(key: key);
 
-  Future<Map<String, dynamic>?> _fetchUserData() async {
-    return await databaseService.getUser(userEmail);
+  @override
+  _ProfilePageState createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  late Future<Map<String, dynamic>?> _userDataFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserData();
+  }
+
+  void _fetchUserData() {
+    setState(() {
+      _userDataFuture = UserApi.getUser(widget.userEmail);
+    });
+  }
+
+  Future<void> _navigateToEditProfile(Map<String, dynamic> userData) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditProfilePage(
+          userEmail: widget.userEmail,
+          userData: userData,
+        ),
+      ),
+    );
+    if (result != null) {
+      _fetchUserData();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'Profile Page',
-          style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        centerTitle: true,
-        elevation: 0,
-      ),
       backgroundColor: Colors.white,
       body: FutureBuilder<Map<String, dynamic>?>(
-        future: _fetchUserData(),
+        future: _userDataFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator(color: Color(0xFF6D071A)));
           }
 
-          if (snapshot.hasError) {
+          if (snapshot.hasError || !snapshot.hasData || snapshot.data == null) {
             return Center(
-              child: Text('Error: ${snapshot.error}'),
-            );
-          }
-
-          if (!snapshot.hasData || snapshot.data == null) {
-            return const Center(
-              child: Text('User not found'),
+              child: Text(
+                'User not found',
+                style: TextStyle(
+                  color: Color(0xFF6D071A),
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             );
           }
 
           final userData = snapshot.data!;
-          final String profileImagePath =
-              userData['profileImage'] ?? 'assets/Images/Profile/profile.png';
-          final String userName =
-              '${userData['firstName']} ${userData['familyName']}';
+          final String userName = '${userData['firstName']} ${userData['familyName']}';
           final String userLocation = userData['wilaya'];
 
-          return SingleChildScrollView(
-            child: Column(
-              children: [
-                const SizedBox(height: 20),
-                // Profile Image
-                Container(
-                  width: 120,
-                  height: 120,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: const Color(0xFF6D071A),
-                      width: 3,
+          return CustomScrollView(
+            slivers: [
+              SliverAppBar(
+                expandedHeight: 250,
+                floating: false,
+                pinned: true,
+                backgroundColor: Color(0xFF6D071A),
+                flexibleSpace: FlexibleSpaceBar(
+                  centerTitle: true,
+                  title: Text(
+                    userName,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  child: ClipOval(
-                    child: Image.asset(
-                      profileImagePath,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                // User Name
-                Text(
-                  userName,
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                // Location
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      Icons.location_on,
-                      color: Color(0xFFD79384),
-                      size: 16,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      userLocation,
-                      style: const TextStyle(
-                        color: Color(0xFFD79384),
-                        fontSize: 16,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                // Email
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      Icons.email,
-                      color: Color(0xFFD79384),
-                      size: 16,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      userEmail,
-                      style: const TextStyle(
-                        color: Color(0xFFD79384),
-                        fontSize: 16,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 32),
-                // Edit Profile Button
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 32),
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF6D071A),
-                      minimumSize: const Size(double.infinity, 45),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(32),
-                      ),
-                    ),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => EditProfilePage(
-                            userEmail: userEmail,
-                            databaseService: databaseService,
-                            userData: userData,
+                  background: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      userData['profileImage'] != null && userData['profileImage'].isNotEmpty
+                          ? Image.network(
+                              userData['profileImage'].startsWith('http') 
+                                ? userData['profileImage'] 
+                                : 'http://192.168.216.10:8081${userData['profileImage']}',
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  color: Colors.grey[200],
+                                  child: Icon(
+                                    Icons.person,
+                                    size: 100,
+                                    color: Colors.grey[400],
+                                  ),
+                                );
+                              },
+                            )
+                          : Container(
+                              color: Colors.grey[200],
+                              child: Icon(
+                                Icons.person,
+                                size: 100,
+                                color: Colors.grey[400],
+                              ),
+                            ),
+                      Positioned(
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        child: Container(
+                          height: 50,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
                           ),
                         ),
-                      );
-                    },
-                    child: const Text(
-                      'Edit Profile',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
                       ),
-                    ),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              ),
+              SliverList(
+                delegate: SliverChildListDelegate([
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildInfoCard(
+                          icon: Icons.person,
+                          title: 'First Name',
+                          subtitle: userData['firstName'],
+                        ),
+                        SizedBox(height: 16),
+                        _buildInfoCard(
+                          icon: Icons.family_restroom,
+                          title: 'Family Name',
+                          subtitle: userData['familyName'],
+                        ),
+                        SizedBox(height: 16),
+                        _buildInfoCard(
+                          icon: Icons.location_on,
+                          title: 'Location',
+                          subtitle: userLocation,
+                        ),
+                        SizedBox(height: 16),
+                        _buildInfoCard(
+                          icon: Icons.email,
+                          title: 'Email',
+                          subtitle: widget.userEmail,
+                        ),
+                        SizedBox(height: 24),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Color(0xFF6D071A),
+                            minimumSize: Size(double.infinity, 50),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(25),
+                            ),
+                          ),
+                          onPressed: () => _navigateToEditProfile(userData),
+                          child: Text(
+                            'Edit Profile',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ]),
+              ),
+            ],
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildInfoCard({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+  }) {
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        borderRadius: BorderRadius.circular(15),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 10,
+            offset: Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            color: Color(0xFF6D071A),
+            size: 30,
+          ),
+          SizedBox(width: 16),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

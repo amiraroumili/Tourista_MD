@@ -1,4 +1,3 @@
-// routes/user_routes.go
 package routes
 
 import (
@@ -15,6 +14,7 @@ func UserRoutes(r *gin.Engine) {
         api.PUT("/users/update", controllers.UpdateUserHandler)
         api.PUT("/users/update-password", controllers.UpdatePasswordHandler)
         api.GET("/users/:email", controllers.GetUserHandler)
-		api.GET("/users", controllers.GetAllUsersHandler)
+        api.GET("/users", controllers.GetAllUsersHandler)
+        api.POST("/users/profile-image", controllers.UpdateProfileImageHandler)
     }
 }

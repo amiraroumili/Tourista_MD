@@ -1,17 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import '../database/database.dart';
+import '../api/user_api.dart';
 
 class EditProfilePage extends StatefulWidget {
   final String userEmail;
-  final DatabaseService databaseService;
   final Map<String, dynamic> userData;
 
   const EditProfilePage({
     Key? key,
     required this.userEmail,
-    required this.databaseService,
     required this.userData,
   }) : super(key: key);
 
@@ -25,38 +23,81 @@ class _EditProfilePageState extends State<EditProfilePage> {
   late TextEditingController _wilayaController;
   late TextEditingController _emailController;
   File? _profileImage;
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _firstNameController = TextEditingController(text: widget.userData['firstName']);
-    _familyNameController = TextEditingController(text: widget.userData['familyName']);
-    _wilayaController = TextEditingController(text: widget.userData['wilaya']);
+    _firstNameController = TextEditingController(text: widget.userData['firstName'] ?? '');
+    _familyNameController = TextEditingController(text: widget.userData['familyName'] ?? '');
+    _wilayaController = TextEditingController(text: widget.userData['wilaya'] ?? '');
     _emailController = TextEditingController(text: widget.userEmail);
   }
 
   Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    try {
+      final picker = ImagePicker();
+      final pickedFile = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 85,
+      );
 
-    if (pickedFile != null) {
+      if (pickedFile != null) {
+        setState(() {
+          _isLoading = true;
+        });
+
+        final imageFile = File(pickedFile.path);
+        
+        // Use the UserApi method to upload the image
+        final imageUrl = await UserApi.uploadProfileImage(widget.userEmail, imageFile);
+        
+        setState(() {
+          _profileImage = imageFile;
+          widget.userData['profileImage'] = imageUrl;
+          _isLoading = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Profile image updated successfully'),
+            backgroundColor: Color(0xFF6D071A),
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error uploading image: $e');
       setState(() {
-        _profileImage = File(pickedFile.path);
+        _isLoading = false;
       });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to upload image: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
   Future<void> _saveChanges() async {
+    setState(() {
+      _isLoading = true;
+    });
+
     try {
       final updatedUser = {
         'email': widget.userEmail,
-        'firstName': _firstNameController.text,
-        'familyName': _familyNameController.text,
-        'wilaya': _wilayaController.text,
-        'profileImage': _profileImage?.path ?? widget.userData['profileImage'],
+        'firstName': _firstNameController.text.trim(),
+        'familyName': _familyNameController.text.trim(),
+        'wilaya': _wilayaController.text.trim(),
+        'password': widget.userData['password'], 
+        'profileImage': widget.userData['profileImage'],
       };
 
-      await widget.databaseService.updateUser(updatedUser);
+      final result = await UserApi.updateUser(updatedUser);
 
       if (!mounted) return;
 
@@ -68,15 +109,24 @@ class _EditProfilePageState extends State<EditProfilePage> {
         ),
       );
 
-      Navigator.pop(context);
+      // Return updated user data to previous screen
+      Navigator.pop(context, result);
     } catch (e) {
+      if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error updating profile: $e'),
+          content: Text('Error updating profile: ${e.toString()}'),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
         ),
       );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -144,10 +194,30 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         child: ClipOval(
                           child: _profileImage != null
                               ? Image.file(_profileImage!, fit: BoxFit.cover)
-                              : Image.asset(
-                                  widget.userData['profileImage'] ?? 'assets/Images/Profile/profile.png',
-                                  fit: BoxFit.cover,
-                                ),
+                              : (widget.userData['profileImage'] != null && 
+                                widget.userData['profileImage'].isNotEmpty
+                                  ? Image.network(
+                                      widget.userData['profileImage'],
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) {
+                                        return Container(
+                                          color: Colors.grey[200],
+                                          child: Icon(
+                                            Icons.person,
+                                            size: 75,
+                                            color: Colors.grey[400],
+                                          ),
+                                        );
+                                      },
+                                    )
+                                  : Container(
+                                      color: Colors.grey[200],
+                                      child: Icon(
+                                        Icons.person,
+                                        size: 75,
+                                        color: Colors.grey[400],
+                                      ),
+                                    )),
                         ),
                       ),
                       Positioned(
@@ -208,7 +278,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         ],
                       ),
                       child: ElevatedButton(
-                        onPressed: _saveChanges,
+                        onPressed: _isLoading ? null : _saveChanges,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
                           shadowColor: Colors.transparent,
@@ -216,15 +286,24 @@ class _EditProfilePageState extends State<EditProfilePage> {
                             borderRadius: BorderRadius.circular(32),
                           ),
                         ),
-                        child: const Text(
-                          'Save Changes',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1,
-                            color: Colors.white
-                          ),
-                        ),
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text(
+                                'Save Changes',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1,
+                                  color: Colors.white,
+                                ),
+                              ),
                       ),
                     ),
                     const SizedBox(height: 16),

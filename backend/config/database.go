@@ -1,50 +1,58 @@
-<<<<<<< HEAD
-// config/database.go
-=======
->>>>>>> 5ddc415 (Refactor backend structure and update dependencies)
 package config
 
 import (
 	"log"
-	"tourista/backend/models"
-
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
-<<<<<<< HEAD
-	"gorm.io/gorm/logger"
-=======
->>>>>>> 5ddc415 (Refactor backend structure and update dependencies)
+	//"tourista/backend/models"
+	cld "github.com/cloudinary/cloudinary-go/v2" 
+	"firebase.google.com/go"
+    "cloud.google.com/go/firestore"
+    "google.golang.org/api/option"
+    "context"
 )
 
-var DB *gorm.DB
+var (
+	CloudinaryClient *cld.Cloudinary
+	FirestoreClient *firestore.Client
+	
+)
 
-<<<<<<< HEAD
-// ConnectDatabase establishes a connection to the SQLite database and auto-migrates models.
+// InitCloudinary initializes the Cloudinary client
+func InitCloudinary() {
+	cloudName := "dloyqdnom"
+	apiKey := "288339188241434"
+	apiSecret := "EsIFypz07yKtX7FN-BATvTuLTxc"
+
+	cld, err := cld.NewFromParams(cloudName, apiKey, apiSecret) // Corrected function call
+	if err != nil {
+		log.Fatalf("Failed to initialize Cloudinary: %v", err)
+	}
+
+	CloudinaryClient = cld
+	log.Println("Cloudinary connection established successfully")
+}
+
 func ConnectDatabase() {
-	var err error
-	DB, err = gorm.Open(sqlite.Open("tourista.db"), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
-	})
-	if err != nil {
-		log.Fatal("Failed to connect to database:", err)
-	}
+    ctx := context.Background()
 
-	// Auto-migrate models
-	err = DB.AutoMigrate(&models.Place{}, &models.Event{}, &models.User{})
-	if err != nil {
-		log.Fatal("Failed to auto-migrate database:", err)
-	}
+    // Use the service account key file you provided
+    opt := option.WithCredentialsFile("C:\\Users\\AMIRA\\Desktop\\Tourista\\NEEEW\\GO\\backend\\tourista-backend-firebase-adminsdk-fbsvc-73e031bff1.json")
+    
+    app, err := firebase.NewApp(ctx, nil, opt)
+    if err != nil {
+        log.Fatalf("Failed to initialize Firebase app: %v", err)
+    }
 
-	log.Println("Database connection established successfully")
-=======
-func ConnectDatabase() {
-	var err error
-	DB, err = gorm.Open(sqlite.Open("tourista.db"), &gorm.Config{})
-	if err != nil {
-		log.Fatal("Failed to connect to database!")
-	}
+    FirestoreClient, err = app.Firestore(ctx)
+    if err != nil {
+        log.Fatalf("Failed to connect to Firestore: %v", err)
+    }
 
-	// Auto-migrate models
-	DB.AutoMigrate(&models.Place{})
->>>>>>> 5ddc415 (Refactor backend structure and update dependencies)
+    log.Println("Firestore connection established successfully")
+}
+
+// CloseDatabase closes the Firestore connection
+func CloseDatabase() {
+    if FirestoreClient != nil {
+        FirestoreClient.Close()
+    }
 }

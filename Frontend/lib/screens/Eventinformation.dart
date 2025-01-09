@@ -4,7 +4,7 @@ import 'package:tourista/screens/Wilaya_list_page.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'event_info_new.dart';
-import '../database/database.dart';
+//import '../database/database.dart';
 import 'event_bloc/event_information_bloc.dart';
 import 'event_event/event_information_event.dart';
 import 'event_state/event_information_state.dart';
@@ -24,11 +24,10 @@ class _InformationPageState extends State<Eventinformation> {
   bool isFavorite = false;
   late EventInformationBloc _eventInformationBloc;
 
-
   @override
   void initState() {
     super.initState();
-    _eventInformationBloc = EventInformationBloc(dbService: DatabaseService());
+    _eventInformationBloc = EventInformationBloc();
     _eventInformationBloc.add(LoadEventInformation(eventInfo: widget.eventInfo));
     initWebViewController();
   }
@@ -47,7 +46,8 @@ class _InformationPageState extends State<Eventinformation> {
       _isWebViewInitialized = true;
     });
   }
-@override
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
@@ -64,8 +64,7 @@ class _InformationPageState extends State<Eventinformation> {
         ),
         centerTitle: true,
       ),
-
-   body: BlocBuilder<EventInformationBloc, EventInformationState>(
+      body: BlocBuilder<EventInformationBloc, EventInformationState>(
         bloc: _eventInformationBloc,
         builder: (context, state) {
           if (state is EventInformationLoading) {
@@ -84,7 +83,7 @@ class _InformationPageState extends State<Eventinformation> {
                 ],
               ),
             );
-                      } else if (state is EventInformationError) {
+          } else if (state is EventInformationError) {
             return Center(child: Text(state.message));
           } else {
             return Center(child: Text('No event information found.'));
@@ -97,19 +96,33 @@ class _InformationPageState extends State<Eventinformation> {
   Widget _buildTopImageSection() {
     return Stack(
       children: [
-        Image.asset(
-          widget.eventInfo.imageUrl,
-          width: double.infinity,
-          height: 250,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) {
-            return Container(
-              height: 250,
-              color: Colors.grey[300],
-              child: Center(child: Icon(Icons.image_not_supported)),
-            );
-          },
-        ),
+        widget.eventInfo.imageUrl.startsWith('http')
+            ? Image.network(
+                widget.eventInfo.imageUrl,
+                width: double.infinity,
+                height: 250,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    height: 250,
+                    color: Colors.grey[300],
+                    child: Center(child: Icon(Icons.image_not_supported)),
+                  );
+                },
+              )
+            : Image.asset(
+                widget.eventInfo.imageUrl,
+                width: double.infinity,
+                height: 250,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    height: 250,
+                    color: Colors.grey[300],
+                    child: Center(child: Icon(Icons.image_not_supported)),
+                  );
+                },
+              ),
       ],
     );
   }
@@ -177,7 +190,7 @@ class _InformationPageState extends State<Eventinformation> {
           children: [
             Icon(Icons.star, color: Colors.yellow, size: 20),
             Text(
-              ' ${''}', //widget.eventInfo.rating
+              ' ${widget.eventInfo.rating}', // Display event rating
               style: TextStyle(fontSize: 16, color: Colors.grey),
             ),
           ],
@@ -302,7 +315,7 @@ class _InformationPageState extends State<Eventinformation> {
           SizedBox(height: 10),
           Center(
             child: RatingBar.builder(
-              // initialRating: widget.eventInfo.rating,
+              initialRating: widget.eventInfo.rating,
               minRating: 0.5,
               allowHalfRating: true,
               itemCount: 5,
@@ -392,28 +405,6 @@ class _InformationPageState extends State<Eventinformation> {
     );
   }
 }
-
-// class EventInfo {
-//   final String name;
-//   final String imageUrl;
-//   final String location;
-//   final double rating;
-//   final String status;
-//   final String description;
-
-//   final String mapUrl;
-
-//   EventInfo({
-//     required this.name,
-//     required this.imageUrl,
-//     required this.location,
-//     required this.rating,
-//     required this.status,
-//     required this.description,
-
-//     required this.mapUrl,
-//   });
-// }
 
 class SectionTitle extends StatelessWidget {
   final IconData icon;

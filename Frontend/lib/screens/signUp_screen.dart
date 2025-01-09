@@ -1,12 +1,17 @@
-// filepath: /c:/Users/AMIRA/Desktop/Tourista/NEEEW/lib/screens/signUp_screen.dart
+// sign_up_screen.dart
 import 'package:flutter/material.dart';
-import '../database/database.dart';
-import 'dart:async'; // For Timer
+import '../api/user_api.dart';
+import 'dart:async';
+import 'package:firebase_auth/firebase_auth.dart';
+
 
 class SignUpScreen extends StatefulWidget {
-  final DatabaseService databaseService;
+  
 
-  const SignUpScreen({super.key, required this.databaseService});
+
+
+  const SignUpScreen({Key? key}) : super(key: key);
+
 
   @override
   _SignUpScreenState createState() => _SignUpScreenState();
@@ -14,12 +19,13 @@ class SignUpScreen extends StatefulWidget {
 
 class _SignUpScreenState extends State<SignUpScreen> {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _firstNameController = TextEditingController();
-  final TextEditingController _familyNameController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _wilayaController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
+  final _firstNameController = TextEditingController();
+  final _familyNameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _wilayaController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+  bool _isLoading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -76,7 +82,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       SizedBox(height: deviceHeight * 0.02),
                       _confirmPasswordField(),
                       SizedBox(height: deviceHeight * 0.04),
-                      _signUpButton(),
+                      _isLoading
+                        ? const Center(child: CircularProgressIndicator(
+                            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6D071A)),
+                          ))
+                        : _signUpButton(),
                       SizedBox(height: deviceHeight * 0.02),
                       _signInText(context),
                     ],
@@ -97,21 +107,20 @@ class _SignUpScreenState extends State<SignUpScreen> {
         labelText: 'First name',
         labelStyle: TextStyle(color: const Color(0xFF6D071A).withOpacity(0.7)),
         prefixIcon: const Icon(Icons.person, color: Color(0xFF6D071A)),
-        suffixIcon: _firstNameController.text.isNotEmpty && _firstNameController.text.length >= 2 ? const Icon(Icons.check_circle, color: Colors.green): null,
+        suffixIcon: _firstNameController.text.isNotEmpty && _firstNameController.text.length >= 2 
+          ? const Icon(Icons.check_circle, color: Colors.green)
+          : null,
         filled: true,
         fillColor: Colors.white,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(32.0),
-          borderSide: const BorderSide(color: Color(0xFF6D071A)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(32.0),
           borderSide: const BorderSide(color: Color(0xFF6D071A)),
         ),
       ),
-      onChanged: (value) {
-        setState(() {});
-      },
+      onChanged: (value) => setState(() {}),
       validator: (value) {
         if (value == null || value.isEmpty) {
           return 'First name is required';
@@ -128,21 +137,20 @@ class _SignUpScreenState extends State<SignUpScreen> {
         labelText: 'Family name',
         labelStyle: TextStyle(color: const Color(0xFF6D071A).withOpacity(0.7)),
         prefixIcon: const Icon(Icons.person, color: Color(0xFF6D071A)),
-        suffixIcon: _familyNameController.text.isNotEmpty && _familyNameController.text.length >= 2 ? const Icon(Icons.check_circle, color: Colors.green): null,
+        suffixIcon: _familyNameController.text.isNotEmpty && _familyNameController.text.length >= 2
+          ? const Icon(Icons.check_circle, color: Colors.green)
+          : null,
         filled: true,
         fillColor: Colors.white,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(32.0),
-          borderSide: const BorderSide(color: Color(0xFF6D071A)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(32.0),
           borderSide: const BorderSide(color: Color(0xFF6D071A)),
         ),
       ),
-      onChanged: (value) {
-        setState(() {});
-      },
+      onChanged: (value) => setState(() {}),
       validator: (value) {
         if (value == null || value.isEmpty) {
           return 'Family name is required';
@@ -167,16 +175,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
         fillColor: Colors.white,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(32.0),
-          borderSide: const BorderSide(color: Color(0xFF6D071A)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(32.0),
           borderSide: const BorderSide(color: Color(0xFF6D071A)),
         ),
       ),
-      onChanged: (value) {
-        setState(() {});
-      },
+      onChanged: (value) => setState(() {}),
       validator: (value) {
         if (value == null || value.isEmpty) {
           return 'Email is required';
@@ -202,16 +207,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
         fillColor: Colors.white,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(32.0),
-          borderSide: const BorderSide(color: Color(0xFF6D071A)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(32.0),
           borderSide: const BorderSide(color: Color(0xFF6D071A)),
         ),
       ),
-      onChanged: (value) {
-        setState(() {});
-      },
+      onChanged: (value) => setState(() {}),
       validator: (value) {
         if (value == null || value.isEmpty) {
           return 'Wilaya is required';
@@ -221,7 +223,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 
-  Widget _passwordField() {
+ Widget _passwordField() {
     return TextFormField(
       controller: _passwordController,
       obscureText: true,
@@ -236,16 +238,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
         fillColor: Colors.white,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(32.0),
-          borderSide: const BorderSide(color: Color(0xFF6D071A)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(32.0),
           borderSide: const BorderSide(color: Color(0xFF6D071A)),
         ),
       ),
-      onChanged: (value) {
-        setState(() {});
-      },
+      onChanged: (value) => setState(() {}),
       validator: (value) {
         if (value == null || value.isEmpty) {
           return 'Password is required';
@@ -273,16 +272,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
         fillColor: Colors.white,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(32.0),
-          borderSide: const BorderSide(color: Color(0xFF6D071A)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(32.0),
           borderSide: const BorderSide(color: Color(0xFF6D071A)),
         ),
       ),
-      onChanged: (value) {
-        setState(() {});
-      },
+      onChanged: (value) => setState(() {}),
       validator: (value) {
         if (value == null || value.isEmpty) {
           return 'Confirm password is required';
@@ -294,134 +290,135 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 
-  Widget _signUpButton() {
-    return ElevatedButton(
-onPressed: () async {
-  if (_formKey.currentState?.validate() ?? false) {
-    try {
-      // Add debug print before insertion
-      print('Attempting to insert user: ${_emailController.text}');
-      
-      await widget.databaseService.insertUser({
-        'email': _emailController.text,
-        'password': _passwordController.text,
-        'firstName': _firstNameController.text,
-        'familyName': _familyNameController.text,
-        'wilaya': _wilayaController.text,
-      });
-      
-      // Add debug print after insertion
-      print('User inserted successfully');
-      
-      // Verify the user was saved
-      final savedUser = await widget.databaseService.getUser(_emailController.text);
-      print('Saved user data: $savedUser');
+Widget _signUpButton() {
+  return ElevatedButton(
+    onPressed: () async {
+      if (_formKey.currentState?.validate() ?? false) {
+        setState(() {
+          _isLoading = true;
+        });
+        
+        try {
+          final userData = {
+            'email': _emailController.text,
+            'password': _passwordController.text,
+            'firstName': _firstNameController.text,
+            'familyName': _familyNameController.text,
+            'wilaya': _wilayaController.text,
+          };
 
-            // Show the success dialog
-            showDialog(
-              context: context,
-              builder: (context) {
-                return AlertDialog(
-                  title: const Center(
-                    child: Text(
-                      'Success',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  alignment: Alignment.center,
-                  content: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text(
-                        'Account created successfully!',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 16.0),
-                      ),
-                      const SizedBox(height: 16.0),
-                      Icon(
-                        Icons.check,
-                        color: const Color(0xFF6D071A).withOpacity(0.7),
-                        size: 48.0,
-                      ),
-                    ],
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(32.0),
-                    side: const BorderSide(color: Color(0xFF6D071A), width: 2),
-                  ),
-                );
-              },
-            );
+          await UserApi.registerUser(userData);
 
-            // Navigate to Sign In screen after 2 seconds
-            Timer(const Duration(seconds: 2), () {
-              Navigator.pop(context);
-              Navigator.pushReplacementNamed(context, '/signIn');
+          if (!mounted) return;
+          
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => AlertDialog(
+              title: const Center(
+                child: Text('Success', style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Account created successfully!',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 16.0),
+                  ),
+                  const SizedBox(height: 16.0),
+                  Icon(
+                    Icons.check_circle,
+                    color: const Color(0xFF6D071A).withOpacity(0.7),
+                    size: 48.0,
+                  ),
+                ],
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(32.0),
+                side: const BorderSide(color: Color(0xFF6D071A), width: 2),
+              ),
+            ),
+          );
+
+          Timer(const Duration(seconds: 2), () {
+            Navigator.pop(context); // Dismiss dialog
+            Navigator.pushReplacementNamed(context, '/signIn');
+          });
+        } on FirebaseAuthException catch (e) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Registration Failed'),
+              content: Text(e.message ?? 'An error occurred'),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(32.0),
+                side: const BorderSide(color: Color(0xFF6D071A), width: 2),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text(
+                    'OK',
+                    style: TextStyle(color: Color(0xFF6D071A)),
+                  ),
+                ),
+              ],
+            ),
+          );
+        } finally {
+          if (mounted) {
+            setState(() {
+              _isLoading = false;
             });
-          } catch (e) {
-            showDialog(
-              context: context,
-              builder: (context) {
-                return AlertDialog(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(40),
-                    side: const BorderSide(
-                      color: Color(0xFF6D071A),
-                      width: 2,
-                    ),
-                  ),
-                  title: const Text('Error'),
-                  content: Text(e.toString()),
-                  actions: [
-                    TextButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
-                      child: const Text('OK', style: TextStyle(color: Color(0xFF6D071A))),
-                    ),
-                  ],
-                );
-              },
-            );
           }
         }
-      },
+      }
+    },
       style: ElevatedButton.styleFrom(
         backgroundColor: const Color(0xFF6D071A),
+        padding: const EdgeInsets.symmetric(vertical: 16.0),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(32.0),
         ),
       ),
-      child: const Padding(
-        padding: EdgeInsets.all(16.0),
-        child: Text(
-          'Sign Up',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 18.0,
-          ),
+      child: const Text(
+        'Sign Up',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 18.0,
+          fontWeight: FontWeight.bold,
         ),
       ),
     );
   }
 
   Widget _signInText(BuildContext context) {
-    return Center(
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Text("Already have an account? "),
-          TextButton(
-            onPressed: () {
-              Navigator.pushNamed(context, '/signIn');
-            },
-            child: const Text(
-              'Sign in',
-              style: TextStyle(color: Color(0xFF6D071A)),
-            ),
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Text("Already have an account? "),
+        TextButton(
+          onPressed: () {
+            Navigator.pushReplacementNamed(context, '/signIn');
+          },
+          child: const Text(
+            'Sign in',
+            style: TextStyle(color: Color(0xFF6D071A)),
           ),
-        ],
-      ),
+        ),
+      ],
     );
+  }
+
+  @override
+  void dispose() {
+    _firstNameController.dispose();
+    _familyNameController.dispose();
+    _emailController.dispose();
+    _wilayaController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
   }
 }

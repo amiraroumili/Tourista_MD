@@ -1,10 +1,13 @@
+// sign_in_screen.dart
 import 'package:flutter/material.dart';
-import '../database/database.dart';
+import '../api/user_api.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class SignInScreen extends StatefulWidget {
-  final DatabaseService databaseService;
 
-  const SignInScreen({super.key, required this.databaseService});
+
+
+  SignInScreen({Key? key}) : super(key: key);
 
   @override
   _SignInScreenState createState() => _SignInScreenState();
@@ -38,7 +41,6 @@ class _SignInScreenState extends State<SignInScreen> {
       body: SafeArea(
         child: Stack(
           children: [
-            // tree vector image
             Positioned(
               bottom: -30,
               left: -20,
@@ -47,7 +49,6 @@ class _SignInScreenState extends State<SignInScreen> {
                 height: 500,
               ),
             ),
-            // Main content (Sign In form)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24.0),
               child: Column(
@@ -62,14 +63,19 @@ class _SignInScreenState extends State<SignInScreen> {
                   const SizedBox(height: 24.0),
                   _forgotPassword(),
                   const SizedBox(height: 32.0),
-                  _isLoading ? const Center(child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6D071A)),
-                  )) : _signInButton(context),
+                  _isLoading 
+                    ? const Center(child: CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6D071A)),
+                      )) 
+                    : _signInButton(context),
                   const SizedBox(height: 16.0),
                   _signUpText(context),
                   if (_errorMessage != null) ...[
                     const SizedBox(height: 8),
-                    Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
+                    Text(_errorMessage!, 
+                      style: const TextStyle(color: Colors.red),
+                      textAlign: TextAlign.center,
+                    ),
                   ],
                 ],
               ),
@@ -145,47 +151,72 @@ class _SignInScreenState extends State<SignInScreen> {
     );
   }
 
-  Widget _signInButton(BuildContext context) {
-    return ElevatedButton(
-      // In SignInScreen, modify the _signInButton onPressed:
-onPressed: () async {
-  setState(() {
-    _isLoading = true;
-    _errorMessage = null;
-  });
-  
-  try {
-    print('Attempting to sign in with email: ${_emailController.text}');
-    
-    final user = await widget.databaseService.getUser(_emailController.text);
-    print('Found user: $user');
-    
-    if (user == null) {
-      throw Exception('No account found with this email');
-    }
-    
-    if (user['password'] != _passwordController.text) {
-      throw Exception('Incorrect password');
-    }
-    
-    Navigator.pushReplacementNamed(
-      context,
-      '/home',
-      arguments: {
-        'userEmail': _emailController.text,
-      },
-    );
-  } catch (e) {
-    setState(() {
-      _errorMessage = e.toString();
-    });
-    print('Sign in error: $e');
-  } finally {
-    setState(() {
-      _isLoading = false;
-    });
-  }
-},
+ Widget _signInButton(BuildContext context) {
+  return ElevatedButton(
+    onPressed: () async {
+      if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+        setState(() {
+          _errorMessage = 'Please fill in all fields';
+        });
+        return;
+      }
+
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+      
+      try {
+        final userData = await UserApi.loginUser(
+          _emailController.text,
+          _passwordController.text,
+        );
+        
+        // // Add null check here
+        // if (userData == null) {
+        //   throw Exception('Failed to retrieve user data');
+        // }
+        
+        if (!mounted) return;
+        
+        Navigator.pushReplacementNamed(
+          context,
+          '/home',
+          arguments: {
+            'userEmail': _emailController.text,
+            'userData': userData,
+          },
+        );
+      } on FirebaseAuthException catch (e) {
+        setState(() {
+          // More specific error messages
+          switch (e.code) {
+            case 'user-not-found':
+              _errorMessage = 'No user found with this email';
+              break;
+            case 'wrong-password':
+              _errorMessage = 'Wrong password provided';
+              break;
+            case 'invalid-email':
+              _errorMessage = 'Invalid email address';
+              break;
+            default:
+              _errorMessage = e.message ?? 'An error occurred during sign in';
+          }
+        });
+      } catch (e) {
+        setState(() {
+          _errorMessage = e.toString();
+        });
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      }
+    },
+
       style: ElevatedButton.styleFrom(
         backgroundColor: const Color(0xFF6D071A),
         foregroundColor: Colors.white,
@@ -205,22 +236,20 @@ onPressed: () async {
   }
 
   Widget _signUpText(BuildContext context) {
-    return Center(
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Text("Don't have an account?"),
-          TextButton(
-            onPressed: () {
-              Navigator.pushNamed(context, '/signUp');
-            },
-            child: const Text(
-              'Sign up here',
-              style: TextStyle(color: Color(0xFF6D071A)),
-            ),
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Text("Don't have an account?"),
+        TextButton(
+          onPressed: () {
+            Navigator.pushNamed(context, '/signUp');
+          },
+          child: const Text(
+            'Sign up here',
+            style: TextStyle(color: Color(0xFF6D071A)),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

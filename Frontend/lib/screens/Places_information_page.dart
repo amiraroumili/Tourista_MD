@@ -1,9 +1,9 @@
+// places_information_page.dart
 import 'package:flutter/material.dart';
 import 'package:tourista/screens/Wilaya_list_page.dart';
-
-
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:tourista/screens/place_class.dart';
 
 class InformationPagess extends StatefulWidget {
   final PlaceInfo placeInfo;
@@ -392,70 +392,69 @@ class _InformationPageState extends State<InformationPagess> {
 }
 
 
-class PlaceInfo {
-  final int? id;
-  final String name;
-  final String imageUrl;
-  final String location;
-  final double rating;
-  final String status;
-  final String description;
-  final String historicalBackground;
-  final String mapUrl;
-  final String category;
-  final String categoryIcon;
-  bool isFavorite;
+// class PlaceInfo {
+//   final String id;  // Changed from int to String
+//   final String name;
+//   final String description;
+//   final String category;
+//   final String location;
+//   final String imageUrl;
+//   final double rating;
+//   final String status;
+//   final String historicalBackground;
+//   final String mapUrl;
+//   final bool isFavorite;
+//   final String categoryIcon;
 
-  PlaceInfo({
-    this.id,
-    required this.name,
-    required this.imageUrl,
-    required this.location,
-    required this.rating,
-    required this.status,
-    required this.description,
-    required this.historicalBackground,
-    required this.mapUrl,
-    required this.category,
-    required this.categoryIcon,
-    this.isFavorite = false,
-  });
+//   PlaceInfo({
+//     required this.id,
+//     required this.name,
+//     required this.description,
+//     required this.category,
+//     required this.location,
+//     required this.imageUrl,
+//     required this.rating,
+//     required this.status,
+//     required this.historicalBackground,
+//     required this.mapUrl,
+//     required this.isFavorite,
+//     required this.categoryIcon,
+//   });
 
-  factory PlaceInfo.fromMap(Map<String, dynamic> map) {
-    return PlaceInfo(
-      id: map['id'],
-      name: map['name'],
-      imageUrl: map['imageUrl'],
-      location: map['location'],
-      rating: map['rating'],
-      status: map['status'],
-      description: map['description'],
-      historicalBackground: map['historicalBackground'],
-      mapUrl: map['mapUrl'],
-      category: map['category'],
-      categoryIcon: map['categoryIcon'],
-      isFavorite: map['isFavorite'] == 1,
-    );
-  }
+//   factory PlaceInfo.fromMap(Map<String, dynamic> map) {
+//     return PlaceInfo(
+//       id: map['id'] as String,  // Changed to handle String ID
+//       name: map['name'] as String,
+//       imageUrl: map['imageUrl'] as String,
+//       location: map['location'] as String,
+//       rating: (map['rating'] as num).toDouble(),
+//       status: map['status'] as String,
+//       description: map['description'] as String,
+//       historicalBackground: map['historicalBackground'] as String,
+//       mapUrl: map['mapUrl'] as String,
+//       category: map['category'] as String,
+//       categoryIcon: map['categoryIcon'] as String,
+//       isFavorite: map['isFavorite'] as bool,
+//     );
+//   }
 
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'name': name,
-      'imageUrl': imageUrl,
-      'location': location,
-      'rating': rating,
-      'status': status,
-      'description': description,
-      'historicalBackground': historicalBackground,
-      'mapUrl': mapUrl,
-      'category': category,
-      'categoryIcon': categoryIcon,
-      'isFavorite': isFavorite ? 1 : 0,
-    };
-  }
-}
-
+//   Map<String, dynamic> toMap() {
+//     return {
+//       'id': id,
+//       'name': name,
+//       'imageUrl': imageUrl,
+//       'location': location,
+//       'rating': rating,
+//       'status': status,
+//       'description': description,
+//       'historicalBackground': historicalBackground,
+//       'mapUrl': mapUrl,
+//       'category': category,
+//       'categoryIcon': categoryIcon,
+//       'isFavorite': isFavorite,
+//     };
+//   }
+// }
 
 class SectionTitle extends StatelessWidget {
   final IconData icon;
