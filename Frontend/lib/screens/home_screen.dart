@@ -30,36 +30,48 @@ class _HomeScreenState extends State<HomeScreen> {
   List<PlaceInfo> filteredTouristicPlaces = [];
   List<EventInfo> events = [];
 
+  @override
   void initState() {
     super.initState();
     selectedCategory = 'All';
     _loadPlaces();
-    _loadEvents(); 
+    _loadEvents();
   }
 
-Future<void> _loadEvents() async {
-  try {
-    final eventsData = await _databaseService.getAllEvents();
-    setState(() {
-      events = eventsData.map((eventMap) => EventInfo.fromMap(eventMap)).toList();
-      events.sort((a, b) => DateTime.parse(b.date).compareTo(DateTime.parse(a.date))); // Sort events by date in descending order
-      events = events.take(3).toList(); // Take only the latest three events
-    });
-    print('Loaded ${events.length} events'); // Debug print
-  } catch (e) {
-    print('Error loading events: $e');
+  // Add this method to handle favorite toggle
+  Future<void> _toggleFavorite(PlaceInfo placeInfo) async {
+    await _databaseService.updatePlaceFavoriteStatus(
+      placeInfo.id!,
+      !placeInfo.isFavorite,
+    );
+    // Reload places immediately after toggling favorite
+    await _loadPlaces();
   }
-}
 
+  // Modify the existing _loadPlaces method to ensure it updates the UI
   Future<void> _loadPlaces() async {
     final places = await _databaseService.getAllPlaces();
-    setState(() {
-      touristicPlaces = places.map((place) => PlaceInfo.fromMap(place)).toList();
-      _filterPlaces();
-    });
+    if (mounted) {  // Check if widget is still mounted
+      setState(() {
+        touristicPlaces = places.map((place) => PlaceInfo.fromMap(place)).toList();
+        _filterPlaces();
+      });
+    }
   }
 
-
+  Future<void> _loadEvents() async {
+    try {
+      final eventsData = await _databaseService.getAllEvents();
+      setState(() {
+        events = eventsData.map((eventMap) => EventInfo.fromMap(eventMap)).toList();
+        events.sort((a, b) => DateTime.parse(b.date).compareTo(DateTime.parse(a.date))); // Sort events by date in descending order
+        events = events.take(3).toList(); // Take only the latest three events
+      });
+      print('Loaded ${events.length} events'); // Debug print
+    } catch (e) {
+      print('Error loading events: $e');
+    }
+  }
 
   void _onCategorySelected(String category) {
     setState(() {
@@ -118,7 +130,6 @@ Future<void> _loadEvents() async {
       drawer: CustomDrawer(
         userEmail: currentUserEmail,
         databaseService: DatabaseService(),
-
       ),
       body: Container(
         color: Colors.white,
@@ -146,46 +157,46 @@ Future<void> _loadEvents() async {
                   ],
                 ),
               ),
-                // Events & Opportunities Section
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 8.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Events & Opportunities',
+              // Events & Opportunities Section
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 8.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Events & Opportunities',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF6D071A)
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pushNamed(context, '/ev&opp');
+                      },
+                      child: Text(
+                        'See All',
                         style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF6D071A)
+                          color: const Color(0xFF6D071A).withOpacity(0.5)
                         ),
                       ),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pushNamed(context, '/ev&opp');
-                        },
-                        child: Text(
-                          'See All',
-                          style: TextStyle(
-                            color: const Color(0xFF6D071A).withOpacity(0.5)
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-                SizedBox(
-                  height: 140,
-                  child: events.isEmpty
-                    ? const Center(
-                        child: Text('No events available'),
-                      )
-                    : ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: events.length,
-                        itemBuilder: (context, index) => _eventCard(context, events[index]),
-                      ),
-                ),
+              ),
+              SizedBox(
+                height: 140,
+                child: events.isEmpty
+                  ? const Center(
+                      child: Text('No events available'),
+                    )
+                  : ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: events.length,
+                      itemBuilder: (context, index) => _eventCard(context, events[index]),
+                    ),
+              ),
               // Touristic Places Section
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -209,13 +220,7 @@ Future<void> _loadEvents() async {
                         children: filteredTouristicPlaces.map((placeInfo) {
                           return TouristicPlaceCard(
                             placeInfo: placeInfo,
-                            onFavoriteToggled: () async {
-                              await _databaseService.updatePlaceFavoriteStatus(
-                                placeInfo.id!,
-                                !placeInfo.isFavorite,
-                              );
-                              _loadPlaces(); // Reload places after updating favorite status
-                            },
+                            onFavoriteToggled: () => _toggleFavorite(placeInfo),
                           );
                         }).toList(),
                       ),
@@ -259,116 +264,116 @@ Future<void> _loadEvents() async {
     );
   }
 
-Widget _eventCard(BuildContext context, EventInfo eventInfo) {
-  return Container(
-    width: 300, // Fixed width for the card
-    margin: const EdgeInsets.all(6),
-    child: Card(
-      color: const Color.fromARGB(255, 251, 248, 245),
-      child: IntrinsicHeight(
-        child: Row(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: Image.asset(
-                  eventInfo.imageUrl,
-                  width: 100,
-                  height: 100,
-                  fit: BoxFit.cover,
+  Widget _eventCard(BuildContext context, EventInfo eventInfo) {
+    return Container(
+      width: 300, // Fixed width for the card
+      margin: const EdgeInsets.all(6),
+      child: Card(
+        color: const Color.fromARGB(255, 251, 248, 245),
+        child: IntrinsicHeight(
+          child: Row(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Image.asset(
+                    eventInfo.imageUrl,
+                    width: 100,
+                    height: 100,
+                    fit: BoxFit.cover,
+                  ),
                 ),
               ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      eventInfo.title,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        const Icon(Icons.location_on, 
-                          color: Color(0xFFD79384),
-                          size: 14,
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        eventInfo.title,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
                         ),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            eventInfo.wilaya,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          const Icon(Icons.location_on, 
+                            color: Color(0xFFD79384),
+                            size: 14,
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              eventInfo.wilaya,
+                              style: const TextStyle(
+                                color: Color(0xFFD79384),
+                                fontSize: 12,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          const Icon(Icons.date_range,
+                            color: Color(0xFFD79384),
+                            size: 14,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            eventInfo.date,
                             style: const TextStyle(
                               color: Color(0xFFD79384),
                               fontSize: 12,
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        const Icon(Icons.date_range,
-                          color: Color(0xFFD79384),
-                          size: 14,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          eventInfo.date,
-                          style: const TextStyle(
-                            color: Color(0xFFD79384),
-                            fontSize: 12,
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      SizedBox(
+                        height: 24,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => Eventinformation(eventInfo: eventInfo),
+                              ),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF6D071A),
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    SizedBox(
-                      height: 24,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => Eventinformation(eventInfo: eventInfo),
+                          child: const Text(
+                            'See More',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.white,
                             ),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF6D071A),
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                        ),
-                        child: const Text(
-                          'See More',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.white,
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 }
 
 class TouristicPlaceCard extends StatelessWidget {

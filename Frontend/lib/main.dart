@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:tourista/screens/Places_information_page.dart';
-import 'screens/Edit_profile_page.dart';
-import 'screens/Eventinformation.dart';
 import 'screens/GuidesInfoPage.dart';
 import 'screens/Profile_page.dart';
 import 'screens/Verification_page.dart';

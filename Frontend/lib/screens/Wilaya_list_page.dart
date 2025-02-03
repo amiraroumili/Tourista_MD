@@ -1,7 +1,6 @@
 // wilaya_list_page.dart
 import 'package:flutter/material.dart';
 import '../database/database.dart';
-import 'GuidesInfoPage.dart';
 
 class WilayaListPage extends StatefulWidget {
   const WilayaListPage({super.key});

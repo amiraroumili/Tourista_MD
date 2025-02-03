@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../data/wilayas.dart';
+import '../database/database.dart';
 
 class SearchBar extends StatefulWidget {
   final Function(String) onWilayaSelected;
@@ -11,16 +11,27 @@ class SearchBar extends StatefulWidget {
 }
 
 class _SearchBarState extends State<SearchBar> {
+  final DatabaseService _databaseService = DatabaseService();
   String selectedWilaya = 'Wilaya';
+  List<String> wilayas = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadWilayas();
+  }
+
+  Future<void> _loadWilayas() async {
+    final wilayasData = await _databaseService.getAllWilayas();
+    setState(() {
+      wilayas = wilayasData.map((wilaya) => wilaya['name'] as String).toList();
+    });
+  }
 
   List<String> getWilayasWithNumbers() {
-    List<String> wilayasWithNumbers = [];
+    List<String> wilayasWithNumbers = ['Wilaya'];
     for (int i = 0; i < wilayas.length; i++) {
-      if (i == 0) {
-        wilayasWithNumbers.add(wilayas[i]);
-      } else {
-        wilayasWithNumbers.add('$i. ${wilayas[i]}');
-      }
+      wilayasWithNumbers.add('${i + 1}. ${wilayas[i]}');
     }
     return wilayasWithNumbers;
   }
@@ -45,12 +56,10 @@ class _SearchBarState extends State<SearchBar> {
         ),
         child: Row(
           children: [
-        
             const Padding(
               padding: EdgeInsets.only(left: 12.0),
               child: Icon(Icons.search, color: Color(0xFF6D071A)),
             ),
-         
             const Expanded(
               child: TextField(
                 decoration: InputDecoration(
@@ -61,10 +70,9 @@ class _SearchBarState extends State<SearchBar> {
                 ),
               ),
             ),
-            
             Container(
               width: 167,
-              height: 48, 
+              height: 48,
               padding: const EdgeInsets.symmetric(horizontal: 10.8),
               decoration: BoxDecoration(
                 color: const Color(0xFF6D071A),
