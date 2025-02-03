@@ -1,0 +1,150 @@
+import 'package:flutter/material.dart';
+import 'package:tourista/screens/Places_information_page.dart';
+import 'package:tourista/data/Placesdata.dart'; // Import Placesdata.dart
+
+class HomeScreen extends StatefulWidget {
+  @override
+  _HomeScreenState createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  String selectedCategory = 'All';
+  String selectedWilaya = 'Wilaya';
+  List<PlaceInfo> touristicPlaces = [
+    ouedElBared,
+    santaCruz,
+    tassili,
+    timgad,
+    timimoun,
+  ];
+  List<PlaceInfo> filteredTouristicPlaces = [];
+
+  @override
+  void initState() {
+    super.initState();
+    selectedCategory = 'All';
+    filteredTouristicPlaces = touristicPlaces; // Initialize with all touristic places
+  }
+
+  void _onCategorySelected(String category) {
+    setState(() {
+      if (selectedCategory == category) {
+        selectedCategory = ''; // Deselect if the same category is clicked
+        filteredTouristicPlaces = touristicPlaces; // Show all places
+      } else {
+        selectedCategory = category; // Select the new category
+        filteredTouristicPlaces = touristicPlaces.where((place) => place.category == category).toList();
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      key: _scaffoldKey,
+      appBar: AppBar(
+        title: Text('Touristic Places'),
+      ),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              child: Text('Touristic Places', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF6D071A))),
+            ),
+            Container(
+              color: Colors.white,
+              child: filteredTouristicPlaces.isEmpty
+                  ? Container(
+                      color: Colors.white,
+                      margin: const EdgeInsets.only(bottom: 100),
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 25.0),
+                      alignment: Alignment.center,
+                      child: Text('No places.', style: TextStyle(fontSize: 16, color: Colors.black.withOpacity(0.8))),
+                    )
+                  : GridView.count(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisCount: 2,
+                      childAspectRatio: 0.66,
+                      children: filteredTouristicPlaces.map((placeInfo) {
+                        return TouristicPlaceCard(
+                          placeInfo: placeInfo,
+                        );
+                      }).toList(),
+                    ),
+            ),
+          ],
+        ),
+      ),
+      bottomNavigationBar: BottomNavBar(currentIndex: 2),
+    );
+  }
+
+  Widget _categoryChip(String label, String imagePath, String selectedImagePath) {
+    bool isSelected = selectedCategory == label;
+    return GestureDetector(
+      // Your existing code for _categoryChip
+    );
+  }
+}
+
+class TouristicPlaceCard extends StatelessWidget {
+  final PlaceInfo placeInfo;
+
+  const TouristicPlaceCard({required this.placeInfo});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => InformationPagess(placeInfo: placeInfo),
+          ),
+        );
+      },
+      child: Card(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Image.asset(
+              placeInfo.imageUrl,
+              height: 120,
+              width: double.infinity,
+              fit: BoxFit.cover,
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    placeInfo.name,
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    placeInfo.location,
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                  SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(Icons.star, color: Colors.yellow, size: 16),
+                      SizedBox(width: 4),
+                      Text(placeInfo.rating.toString()),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
