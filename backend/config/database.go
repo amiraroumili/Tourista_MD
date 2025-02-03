@@ -1,4 +1,7 @@
+<<<<<<< HEAD
 // config/database.go
+=======
+>>>>>>> 5ddc415 (Refactor backend structure and update dependencies)
 package config
 
 import (
@@ -7,11 +10,15 @@ import (
 
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+<<<<<<< HEAD
 	"gorm.io/gorm/logger"
+=======
+>>>>>>> 5ddc415 (Refactor backend structure and update dependencies)
 )
 
 var DB *gorm.DB
 
+<<<<<<< HEAD
 // ConnectDatabase establishes a connection to the SQLite database and auto-migrates models.
 func ConnectDatabase() {
 	var err error
@@ -29,4 +36,15 @@ func ConnectDatabase() {
 	}
 
 	log.Println("Database connection established successfully")
+=======
+func ConnectDatabase() {
+	var err error
+	DB, err = gorm.Open(sqlite.Open("tourista.db"), &gorm.Config{})
+	if err != nil {
+		log.Fatal("Failed to connect to database!")
+	}
+
+	// Auto-migrate models
+	DB.AutoMigrate(&models.Place{})
+>>>>>>> 5ddc415 (Refactor backend structure and update dependencies)
 }
